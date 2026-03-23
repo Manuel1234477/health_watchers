@@ -5,3 +5,4 @@ export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
 export { Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableCell, TableCaption } from './table'
 export { PageWrapper } from './page-wrapper'
 export { PageHeader } from './page-header'
+export { SlideOver } from './SlideOver'
