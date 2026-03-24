@@ -17,8 +17,11 @@
   "devDependencies": {
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
+    "autoprefixer": "^10.4.27",
     "eslint": "^9.39.4",
     "eslint-plugin-jsx-a11y": "^6.10.2",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^4.2.2",
     "typescript": "latest"
   }
 }
