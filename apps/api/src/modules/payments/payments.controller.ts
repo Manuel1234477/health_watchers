@@ -1,12 +1,60 @@
 import { Request, Response, Router } from 'express';
-import { authenticate } from '../../middlewares/auth.middleware';
+import { authenticate } from '@api/middlewares/auth.middleware';
 import { PaymentRecordModel } from './models/payment-record.model';
 import { config } from '@health-watchers/config';
 import crypto from 'crypto';
 
 const router = Router();
 
-// POST /api/v1/payments/intent
+/**
+ * @swagger
+ * /payments/intent:
+ *   post:
+ *     summary: Create a Stellar payment intent
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [amount]
+ *             properties:
+ *               amount:
+ *                 type: string
+ *                 description: Payment amount in XLM
+ *                 example: "10.00"
+ *     responses:
+ *       200:
+ *         description: Payment intent created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, example: success }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     intentId:    { type: string, format: uuid }
+ *                     clinicId:    { type: string }
+ *                     amount:      { type: string }
+ *                     destination: { type: string, description: Stellar public key }
+ *                     memo:        { type: string }
+ *                     network:     { type: string, enum: [testnet, mainnet] }
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 router.post('/intent', authenticate, async (req: Request, res: Response) => {
   try {
     const { amount } = req.body;
@@ -29,7 +77,45 @@ router.post('/intent', authenticate, async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/v1/payments/status/:intentId
+/**
+ * @swagger
+ * /payments/status/{intentId}:
+ *   get:
+ *     summary: Get the status of a payment intent
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: intentId
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *         description: Payment intent UUID
+ *     responses:
+ *       200:
+ *         description: Payment status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, example: success }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     intentId:      { type: string }
+ *                     paymentStatus: { type: string, enum: [pending, confirmed, failed] }
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       404:
+ *         description: Payment intent not found
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 router.get('/status/:intentId', authenticate, async (req: Request, res: Response) => {
   const record = await PaymentRecordModel.findOne({
     intentId: req.params.intentId,

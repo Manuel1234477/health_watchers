@@ -1,4 +1,4 @@
-import type { AppRole } from '../types/express';
+import type { AppRole } from '@health-watchers/types';
 
 /**
  * Secrets validation and configuration

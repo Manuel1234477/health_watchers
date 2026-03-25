@@ -1,20 +1,3 @@
-import { useTranslations } from "next-intl";
-import EncountersClient from "./EncountersClient";
-
-export default function EncountersPage() {
-  const t = useTranslations("encounters");
-  return (
-    <EncountersClient
-      labels={{
-        title: t("title"),
-        loading: t("loading"),
-        empty: t("empty"),
-        id: t("id"),
-        patient: t("patient"),
-        date: t("date"),
-        notes: t("notes"),
-      }}
-    />
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -57,7 +40,6 @@ export default function EncountersPage() {
   return (
     <PageWrapper className="py-8">
       <PageHeader title="Encounters" />
-      
       <div className="space-y-4">
         {encounters.map(encounter => (
           <Card key={encounter.id}>
@@ -83,10 +65,9 @@ export default function EncountersPage() {
             </CardContent>
           </Card>
         ))}
-        
         {encounters.length === 0 && (
           <div className="text-center py-8">
-            <p className="text-secondary-600">No encounters found. API stub - implement full.</p>
+            <p className="text-secondary-600">No encounters found.</p>
           </div>
         )}
       </div>

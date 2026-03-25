@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import LanguageSwitcher from "./LanguageSwitcher";
-import type { Locale } from "../../i18n";
+import type { Locale } from "@/lib/locales";
 
 interface NavLink {
   href: string;
@@ -62,7 +62,7 @@ export default function NavbarClient({
             </a>
 
             {/* Desktop links */}
-            <ul className="hidden md:flex gap-6 list-none m-0 p-0" role="list">
+            <ul className="hidden md:flex gap-6 list-none m-0 p-0">
               {links.map((l) => (
                 <li key={l.href}>
                   <a
@@ -105,7 +105,7 @@ export default function NavbarClient({
         {/* Mobile menu */}
         {open && (
           <div id="mobile-menu" className="md:hidden border-t border-gray-100 bg-white px-4 pb-4">
-            <ul role="list" className="mt-3 flex flex-col gap-3 list-none m-0 p-0">
+            <ul className="mt-3 flex flex-col gap-3 list-none m-0 p-0">
               {links.map((l) => (
                 <li key={l.href}>
                   <a

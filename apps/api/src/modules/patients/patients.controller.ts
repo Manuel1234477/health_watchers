@@ -1,10 +1,43 @@
 import { Request, Response, Router } from 'express';
 import { authenticate } from '../../middlewares/auth.middleware';
-import { PatientModel } from './patient.model';
+import { PatientModel } from './models/patient.model';
 
 const router = Router();
 
-// POST /api/v1/patients
+/**
+ * @swagger
+ * /patients:
+ *   post:
+ *     summary: Register a new patient
+ *     tags: [Patients]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [firstName, lastName, dateOfBirth, sex, contactNumber, address]
+ *             properties:
+ *               firstName:     { type: string }
+ *               lastName:      { type: string }
+ *               dateOfBirth:   { type: string, format: date }
+ *               sex:           { type: string, enum: [M, F, O] }
+ *               contactNumber: { type: string }
+ *               address:       { type: string }
+ *     responses:
+ *       201:
+ *         description: Patient created
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/SuccessResponse' }
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 router.post('/', authenticate, async (req: Request, res: Response) => {
   const clinicId = req.user?.clinicId;
   if (!clinicId) return res.status(401).json({ error: 'Unauthorized' });
@@ -13,15 +46,32 @@ router.post('/', authenticate, async (req: Request, res: Response) => {
   return res.status(201).json({ status: 'success', data: patient });
 });
 
-// GET /api/v1/patients
-router.get('/', authenticate, async (req: Request, res: Response) => {
-  const clinicId = req.user?.clinicId;
-  if (!clinicId) return res.status(401).json({ error: 'Unauthorized' });
-  const patients = await PatientModel.find({ clinicId }).sort({ lastName: 1, firstName: 1 });
-  return res.json({ status: 'success', data: patients });
-});
-
-// GET /api/v1/patients/search?q=
+/**
+ * @swagger
+ * /patients/search:
+ *   get:
+ *     summary: Search patients by name
+ *     tags: [Patients]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema: { type: string }
+ *         description: Search term (first or last name)
+ *     responses:
+ *       200:
+ *         description: List of matching patients
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/SuccessResponse' }
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 router.get('/search', authenticate, async (req: Request, res: Response) => {
   const clinicId = req.user?.clinicId;
   const q = req.query.q as string;
@@ -35,7 +85,37 @@ router.get('/search', authenticate, async (req: Request, res: Response) => {
   return res.json({ status: 'success', data: results });
 });
 
-// GET /api/v1/patients/:id
+/**
+ * @swagger
+ * /patients/{id}:
+ *   get:
+ *     summary: Get a patient by ID
+ *     tags: [Patients]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *         description: Patient MongoDB ObjectId
+ *     responses:
+ *       200:
+ *         description: Patient record
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/SuccessResponse' }
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       404:
+ *         description: Patient not found
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 router.get('/:id', authenticate, async (req: Request, res: Response) => {
   const clinicId = req.user?.clinicId;
   const patient = await PatientModel.findOne({ _id: req.params.id, clinicId });

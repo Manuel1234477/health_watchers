@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { locales, type Locale } from "../../i18n";
+import { locales, type Locale } from "@/lib/locales";
 
 const labels: Record<Locale, string> = {
   en: "English",
@@ -20,11 +20,6 @@ export default function LanguageSwitcher({ current }: { current: Locale }) {
 
   return (
     <div role="group" aria-label="Language selection" className="flex gap-2 items-center">
-    <div
-      role="group"
-      aria-label="Language selection"
-      style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}
-    >
       {locales.map((locale) => {
         const isCurrent = locale === current;
         return (
@@ -39,38 +34,11 @@ export default function LanguageSwitcher({ current }: { current: Locale }) {
                 ? "bg-gray-200 border-gray-300 font-semibold cursor-default"
                 : "bg-white border-gray-300 hover:bg-gray-50 cursor-pointer"
             }`}
-            style={{
-              padding: "4px 10px",
-              cursor: isCurrent ? "default" : "pointer",
-              fontWeight: isCurrent ? "bold" : "normal",
-              border: "1px solid #ccc",
-              borderRadius: "4px",
-              background: isCurrent ? "#e0e0e0" : "white",
-            }}
           >
             {labels[locale]}
           </button>
         );
       })}
-    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-      {locales.map((locale) => (
-        <button
-          key={locale}
-          onClick={() => switchLocale(locale)}
-          disabled={locale === current || isPending}
-          style={{
-            padding: "4px 10px",
-            cursor: locale === current ? "default" : "pointer",
-            fontWeight: locale === current ? "bold" : "normal",
-            border: "1px solid #ccc",
-            borderRadius: "4px",
-            background: locale === current ? "#e0e0e0" : "white",
-          }}
-          aria-current={locale === current ? "true" : undefined}
-        >
-          {labels[locale]}
-        </button>
-      ))}
     </div>
   );
 }

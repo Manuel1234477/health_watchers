@@ -1,15 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '@health-watchers/config';
-import { TokenUser } from '@health-watchers/types';
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: TokenUser;
-    }
-  }
-}
+import { AuthenticatedUser } from '../types/express';
 
 export const authenticate = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
@@ -18,7 +10,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   }
   try {
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, config.jwt.accessTokenSecret) as TokenUser;
+    const decoded = jwt.verify(token, config.jwt.accessTokenSecret) as AuthenticatedUser;
     req.user = decoded;
     next();
   } catch {
