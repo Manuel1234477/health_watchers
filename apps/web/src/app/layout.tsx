@@ -2,10 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getLocale } from "next-intl/server";
 import Navbar from "../components/Navbar";
-import type { Metadata } from "next";
-import { NextIntlClientProvider } from "next-intl";
-import { getMessages, getLocale } from "next-intl/server";
-import Navbar from "../components/Navbar";
+import { ErrorBoundary } from "../components/ui/error-boundary";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -29,19 +26,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Navbar />
           <div id="main-content" tabIndex={-1}>
-            {children}
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
           </div>
-      <body>
-        <NextIntlClientProvider locale={locale} messages={messages}>
-          <Navbar />
-          <div id="main-content" tabIndex={-1}>
-            {children}
-          </div>
-          {children}
         </NextIntlClientProvider>
-    <html lang="en">
-      <body className="min-h-screen bg-neutral-50 font-sans antialiased">
-        {children}
       </body>
     </html>
   );

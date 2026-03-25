@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { ErrorMessage } from "@/components/ui";
 
 interface Payment {
   id: string;
@@ -24,21 +25,32 @@ interface Labels {
 export default function PaymentsClient({ labels }: { labels: Labels }) {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchPayments = useCallback(() => {
+    setLoading(true);
+    setError(null);
     fetch("http://localhost:3001/api/v1/payments")
-      .then((res) => res.json())
-      .then((data) => { setPayments(data || []); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then((res) => {
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
+        return res.json();
+      })
+      .then((data) => { setPayments(data.data || data || []); setLoading(false); })
+      .catch((err) => { setError(err.message || "Failed to load payments."); setLoading(false); });
   }, []);
+
+  useEffect(() => { fetchPayments(); }, [fetchPayments]);
 
   if (loading) {
     return (
       <p role="status" aria-live="polite" className="px-4 py-8 text-gray-500">
-      <p role="status" aria-live="polite" style={{ padding: "2rem" }}>
         {labels.loading}
       </p>
     );
+  }
+
+  if (error) {
+    return <ErrorMessage message={error} onRetry={fetchPayments} />;
   }
 
   return (
@@ -70,35 +82,6 @@ export default function PaymentsClient({ labels }: { labels: Labels }) {
               </div>
               {p.txHash && (
                 <div className="mt-3 text-sm">
-  if (loading) return <p style={{ padding: "2rem" }}>{labels.loading}</p>;
-
-  return (
-    <main style={{ padding: "2rem", fontFamily: "sans-serif" }}>
-      <h1>{labels.title}</h1>
-      {payments.length === 0 ? (
-        <p role="status">{labels.empty}</p>
-      ) : (
-        <ul aria-label={labels.title}>
-          {payments.map((p) => (
-            <li key={p.id} style={{ margin: "10px 0", padding: "10px", border: "1px solid #ddd" }}>
-              <span><strong>{labels.id}:</strong> {p.id}</span>{" | "}
-              <span><strong>{labels.patient}:</strong> {p.patientId}</span>{" | "}
-              <span>{labels.amount}: {p.amount} XLM</span>{" | "}
-              <span>{labels.status}: {p.status}</span>
-              {p.txHash && (
-                <span>
-                  {" | "}
-        <p>{labels.empty}</p>
-      ) : (
-        <ul>
-          {payments.map((p) => (
-            <li key={p.id} style={{ margin: "10px 0", padding: "10px", border: "1px solid #ddd" }}>
-              <strong>{labels.id}:</strong> {p.id} | <strong>{labels.patient}:</strong> {p.patientId} |{" "}
-              {labels.amount}: {p.amount} XLM | {labels.status}: {p.status}
-              {p.txHash && (
-                <span>
-                  {" "}
-                  |{" "}
                   <a
                     href={`https://stellar.expert/explorer/testnet/tx/${p.txHash}`}
                     target="_blank"
@@ -109,10 +92,6 @@ export default function PaymentsClient({ labels }: { labels: Labels }) {
                     {labels.view} →
                   </a>
                 </div>
-                  >
-                    {labels.view}
-                  </a>
-                </span>
               )}
             </li>
           ))}

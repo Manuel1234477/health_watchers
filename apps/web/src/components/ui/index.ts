@@ -6,3 +6,5 @@ export { Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableC
 export { PageWrapper } from './page-wrapper'
 export { PageHeader } from './page-header'
 export { SlideOver } from './SlideOver'
+export { ErrorMessage } from './error-message'
+export { ErrorBoundary } from './error-boundary'

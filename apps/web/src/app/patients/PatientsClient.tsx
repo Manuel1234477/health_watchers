@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { type Patient, formatDate } from "@health-watchers/types";
+import { ErrorMessage } from "@/components/ui";
 
 interface Labels {
   title: string;
@@ -17,13 +18,21 @@ interface Labels {
 export default function PatientsClient({ labels }: { labels: Labels }) {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchPatients = useCallback(() => {
+    setLoading(true);
+    setError(null);
     fetch("http://localhost:3001/api/v1/patients")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
+        return res.json();
+      })
       .then((data) => { setPatients(data.data || []); setLoading(false); })
-      .catch(() => setLoading(false));
+      .catch((err) => { setError(err.message || "Failed to load patients."); setLoading(false); });
   }, []);
+
+  useEffect(() => { fetchPatients(); }, [fetchPatients]);
 
   if (loading) {
     return (
@@ -31,6 +40,10 @@ export default function PatientsClient({ labels }: { labels: Labels }) {
         {labels.loading}
       </p>
     );
+  }
+
+  if (error) {
+    return <ErrorMessage message={error} onRetry={fetchPatients} />;
   }
 
   return (
