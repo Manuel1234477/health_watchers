@@ -14,6 +14,8 @@ export default function PatientsPage() {
         dob: t("dob"),
         sex: t("sex"),
         contact: t("contact"),
+        search: t("search"),
+        view: t("view"),
       }}
     />
   );

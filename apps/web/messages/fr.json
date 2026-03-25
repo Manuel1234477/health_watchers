@@ -16,7 +16,9 @@
     "name": "Nom complet",
     "dob": "Date de naissance",
     "sex": "Sexe",
-    "contact": "Contact"
+    "contact": "Contact",
+    "search": "Rechercher des patients par nom...",
+    "view": "Voir"
   },
   "encounters": {
     "title": "Consultations",
@@ -36,5 +38,13 @@
     "amount": "Montant",
     "status": "Statut",
     "view": "voir"
+  },
+  "patientDetail": {
+    "back": "Retour aux Patients",
+    "loading": "Chargement des détails du patient...",
+    "error": "Impossible de charger les détails du patient.",
+    "details": "Détails du Patient",
+    "encounters": "Historique des Consultations",
+    "noEncounters": "Aucune consultation enregistrée."
   }
 }
