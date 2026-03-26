@@ -11,9 +11,13 @@
     "build": "turbo run build",
     "start": "turbo run start",
     "lint": "turbo run lint",
-    "seed": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.seed.json scripts/seed.ts"
+    "seed": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.seed.json scripts/seed.ts",
+    "changeset": "changeset",
+    "version": "changeset version && npm install --package-lock-only",
+    "release": "changeset publish"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.27.1",
     "@types/node": "25.5.0",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
