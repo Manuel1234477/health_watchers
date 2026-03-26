@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { locales, defaultLocale } from "./i18n";
+import { locales, defaultLocale } from "./i18n.config";
 
 const protectedRoutes = ["/patients", "/encounters", "/payments"];
 const publicRoutes = ["/login"];

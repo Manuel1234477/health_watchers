@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import { useState, useRef } from "react";
 import Link from "next/link";
@@ -19,6 +19,8 @@ interface Labels {
   search: string;
   view: string;
 }
+
+const API_BASE_URL = 'http://localhost:3001/api/v1'
 
 export default function PatientsClient({ labels }: { labels: Labels }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -116,6 +118,28 @@ export default function PatientsClient({ labels }: { labels: Labels }) {
           </div>
         </>
       )}
-    </main>
-  );
+
+      <SlideOver
+        isOpen={showForm}
+        onClose={handleFormCancel}
+        title={formMode === 'create' ? 'New Patient' : 'Edit Patient'}
+        subtitle={formMode === 'create' ? 'Add a new patient to the system' : 'Update patient information'}
+        width="w-full sm:w-[400px]"
+      >
+        <PatientForm
+          initialData={formMode === 'edit' && selectedPatient ? {
+            firstName: selectedPatient.firstName,
+            lastName: selectedPatient.lastName,
+            dateOfBirth: selectedPatient.dateOfBirth?.split('T')[0] || '',
+            sex: (selectedPatient.gender === 'male' ? 'M' : selectedPatient.gender === 'female' ? 'F' : 'O') as 'M' | 'F' | 'O',
+            contactNumber: selectedPatient.phone || '',
+            address: selectedPatient.address || '',
+          } : undefined}
+          isLoading={submitting}
+          onSubmit={handleFormSubmit}
+          onCancel={handleFormCancel}
+        />
+      </SlideOver>
+    </PageWrapper>
+  )
 }

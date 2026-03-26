@@ -1,96 +1,45 @@
 # Contributing to Health Watchers
 
-Thank you for your interest in contributing to Health Watchers! This document provides guidelines for contributing to the project.
+Thank you for your interest in contributing to Health Watchers! This document provides guidelines and instructions for contributing.
 
-## Commit Message Convention
+## Code of Conduct
 
-This project follows [Conventional Commits](https://www.conventionalcommits.org/) specification for commit messages. This leads to more readable messages and enables automated changelog generation.
+We are committed to providing a welcoming and inclusive environment. Please be respectful and professional in all interactions.
 
-### Commit Message Format
+## Getting Started
 
-```
-<type>[optional scope]: <description>
+1. Fork the repository
+2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/health-watchers.git`
+3. Create a feature branch: `git checkout -b feature/your-feature-name`
+4. Make your changes
+5. Test your changes thoroughly
+6. Commit with clear messages: `git commit -m "Add: feature description"`
+7. Push to your fork: `git push origin feature/your-feature-name`
+8. Open a Pull Request
 
-[optional body]
+## Development Setup
 
-[optional footer(s)]
-```
+See the [README.md](README.md) for detailed setup instructions using Docker Compose or manual setup.
 
-### Types
+## Commit Message Guidelines
 
-- `feat`: A new feature
-- `fix`: A bug fix
-- `docs`: Documentation only changes
-- `style`: Changes that don't affect code meaning (white-space, formatting, etc.)
-- `refactor`: Code change that neither fixes a bug nor adds a feature
-- `perf`: Code change that improves performance
-- `test`: Adding missing tests or correcting existing tests
-- `build`: Changes that affect the build system or external dependencies
-- `ci`: Changes to CI configuration files and scripts
-- `chore`: Other changes that don't modify src or test files
-
-### Examples
-
-```bash
-feat(patients): add patient search functionality
-fix(auth): resolve token refresh race condition
-docs(changelog): add versioning strategy documentation
-refactor(api): simplify error handling middleware
-```
-
-### Breaking Changes
-
-Breaking changes should be indicated by a `!` after the type/scope and explained in the footer:
-
-```bash
-feat(api)!: change patient API response structure
-
-BREAKING CHANGE: Patient API now returns nested address object instead of flat structure
-```
-
-## Changelog Management
-
-This project uses [Changesets](https://github.com/changesets/changesets) for changelog management.
-
-### Creating a Changeset
-
-When you make changes that affect users, create a changeset:
-
-```bash
-npm run changeset
-```
-
-Follow the prompts to:
-1. Select which packages have changed
-2. Choose the version bump type (major, minor, patch)
-3. Write a summary of the changes
-
-This creates a markdown file in `.changeset/` that will be used to update the changelog and version on release.
-
-### Version Bump Guidelines
-
-- **Major (1.0.0)**: Breaking changes that require user action
-- **Minor (0.1.0)**: New features that are backward compatible
-- **Patch (0.0.1)**: Bug fixes and minor improvements
+Use conventional commit format:
+- `feat:` New feature
+- `fix:` Bug fix
+- `docs:` Documentation changes
+- `style:` Code style changes (formatting, etc.)
+- `refactor:` Code refactoring
+- `test:` Adding or updating tests
+- `chore:` Maintenance tasks
 
 ## Pull Request Process
 
-1. Create a feature branch from `main`
-2. Make your changes following the commit convention
-3. Create a changeset if your changes affect users
-4. Ensure all tests pass and linting is clean
-5. Submit a pull request with a clear description
-6. Wait for review and address any feedback
-
-## Release Process
-
-Releases are automated via GitHub Actions:
-
-1. When PRs are merged to `main`, changesets are collected
-2. A "Version Packages" PR is automatically created
-3. When the Version Packages PR is merged, a new release is published
-4. GitHub Release notes are generated from the changelog
+1. Update documentation if needed
+2. Add tests for new features
+3. Ensure all tests pass
+4. Update the CHANGELOG.md
+5. Request review from maintainers
 
 ## Questions?
 
-If you have questions about contributing, please open an issue for discussion.
+Open an issue or reach out to the maintainers.

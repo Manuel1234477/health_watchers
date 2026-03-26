@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import LanguageSwitcher from "./LanguageSwitcher";
-import type { Locale } from "../../i18n";
+import type { Locale } from "../../i18n.config";
 
 interface NavLink { href: string; label: string; }
 
