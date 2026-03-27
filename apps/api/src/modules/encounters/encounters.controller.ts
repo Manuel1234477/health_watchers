@@ -1,5 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { EncounterModel } from './encounter.model';
+import { validateRequest } from '@api/middlewares/validate.middleware';
+import { objectIdSchema } from '@api/middlewares/objectid.schema';
+import { createEncounterSchema, updateEncounterSchema } from './encounter.validation';
+import { asyncHandler } from '@api/middlewares/async.handler';
 import { toEncounterResponse } from './encounters.transformer';
 import { authenticate, requireRoles } from '@api/middlewares/auth.middleware';
 
@@ -17,37 +21,41 @@ router.get('/', async (_req: Request, res: Response) => {
   }
 });
 
-// GET /encounters/patient/:patientId
-router.get('/patient/:patientId', async (req: Request, res: Response) => {
-  try {
-    const docs = await EncounterModel.find({ patientId: req.params.patientId }).sort({ createdAt: -1 });
-    return res.json({ status: 'success', data: docs.map(toEncounterResponse) });
-  } catch (err: any) {
-    return res.status(500).json({ error: 'InternalError', message: err.message });
-  }
-});
+router.get(
+  '/',
+  asyncHandler(async (_req: Request, res: Response) => {
+    const encounters = await EncounterModel.find().sort({ createdAt: -1 }).lean();
+    res.json({ status: 'success', data: encounters.map(toEncounterResponse) });
+  }),
+);
 
-// GET /encounters/:id
-router.get('/:id', async (req: Request, res: Response) => {
-  try {
-    const doc = await EncounterModel.findById(req.params.id);
-    if (!doc) return res.status(404).json({ error: 'NotFound', message: 'Encounter not found' });
-    return res.json({ status: 'success', data: toEncounterResponse(doc) });
-  } catch (err: any) {
-    return res.status(500).json({ error: 'InternalError', message: err.message });
-  }
-});
+router.get(
+  '/patient/:patientId',
+  asyncHandler(async (req: Request, res: Response) => {
+    const encounters = await EncounterModel.find({ patientId: req.params.patientId }).sort({ createdAt: -1 }).lean();
+    res.json({ status: 'success', data: encounters.map(toEncounterResponse) });
+  }),
+);
 
-// POST /encounters
-router.post('/', async (req: Request, res: Response) => {
-  try {
-    const { patientId, clinicId, chiefComplaint, notes } = req.body;
-    const doc = await EncounterModel.create({ patientId, clinicId, chiefComplaint, notes });
-    return res.status(201).json({ status: 'success', data: toEncounterResponse(doc) });
-  } catch (err: any) {
-    return res.status(400).json({ error: 'BadRequest', message: err.message });
-  }
-});
+router.get(
+  '/:id',
+  validateRequest({ params: objectIdSchema }),
+  asyncHandler(async (req: Request, res: Response) => {
+    const encounter = await EncounterModel.findById(req.params.id).lean();
+    if (!encounter) return res.status(404).json({ error: 'NotFound', message: 'Encounter not found' });
+    res.json({ status: 'success', data: toEncounterResponse(encounter) });
+  }),
+);
+
+router.patch(
+  '/:id',
+  validateRequest({ params: objectIdSchema, body: updateEncounterSchema }),
+  asyncHandler(async (req: Request, res: Response) => {
+    const encounter = await EncounterModel.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true }).lean();
+    if (!encounter) return res.status(404).json({ error: 'NotFound', message: 'Encounter not found' });
+    res.json({ status: 'success', data: toEncounterResponse(encounter) });
+  }),
+);
 
 // PATCH /encounters/:id — update notes, diagnosis, treatmentPlan, aiSummary
 router.patch('/:id', authenticate, WRITE_ROLES, async (req: Request, res: Response) => {

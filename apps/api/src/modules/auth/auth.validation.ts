@@ -18,7 +18,7 @@ const COMMON_PASSWORDS = new Set([
 
 export const passwordSchema = z
   .string()
-  .min(12, 'Password must be at least 12 characters')
+  .min(8, 'Password must be at least 8 characters')
   .refine((p) => /[A-Z]/.test(p), 'Password must contain at least one uppercase letter')
   .refine((p) => /[a-z]/.test(p), 'Password must contain at least one lowercase letter')
   .refine((p) => /[0-9]/.test(p), 'Password must contain at least one digit')
@@ -27,14 +27,14 @@ export const passwordSchema = z
 
 export const loginSchema = z.object({
   email:    z.string().email(),
-  password: z.string().min(1, 'Password is required'), // login: don't re-validate complexity
+  password: z.string().min(1, 'Password is required'),
 });
 
 export const registerSchema = z.object({
   fullName: z.string().min(1),
   email:    z.string().email(),
   password: passwordSchema,
-  role:     z.enum(['SUPER_ADMIN','CLINIC_ADMIN','DOCTOR','NURSE','ASSISTANT','READ_ONLY']),
+  role:     z.enum(['SUPER_ADMIN', 'CLINIC_ADMIN', 'DOCTOR', 'NURSE', 'ASSISTANT', 'READ_ONLY']),
   clinicId: z.string().min(1),
 });
 

@@ -1,6 +1,17 @@
 import { Schema, model, models } from 'mongoose';
 
-const paymentRecordSchema = new Schema(
+export interface PaymentRecord {
+  intentId: string;
+  amount: string;
+  destination: string;
+  memo?: string;
+  status: 'pending' | 'confirmed' | 'failed';
+  txHash?: string;
+  clinicId: string;
+  patientId?: string;
+}
+
+const paymentRecordSchema = new Schema<PaymentRecord>(
   {
     intentId:    { type: String, required: true, unique: true },
     amount:      { type: String, required: true },
@@ -11,8 +22,8 @@ const paymentRecordSchema = new Schema(
     clinicId:    { type: String, required: true, index: true },
     patientId:   { type: String, index: true },
   },
-  { timestamps: true }
+  { timestamps: true, versionKey: false },
 );
 
 export const PaymentRecordModel =
-  models.PaymentRecord || model('PaymentRecord', paymentRecordSchema);
+  models.PaymentRecord || model<PaymentRecord>('PaymentRecord', paymentRecordSchema);

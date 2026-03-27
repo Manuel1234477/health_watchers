@@ -70,4 +70,19 @@ start().catch((err) => {
   process.exit(1);
 });
 
+// Global error handler — must be last
+app.use(errorHandler);
+
+(async () => {
+  try {
+    await connectDB();
+    app.listen(config.apiPort, () => {
+      console.log(`Health Watchers API running on port ${config.apiPort}`);
+    });
+  } catch (err) {
+    console.error("❌ Failed to start server:", err);
+    process.exit(1);
+  }
+})();
+
 export default app;
