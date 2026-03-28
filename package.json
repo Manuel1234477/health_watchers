@@ -18,7 +18,7 @@
     "monorepo"
   ],
   "engines": {
-    "node": ">=18.0.0",
+    "node": ">=20.0.0",
     "npm": ">=9.0.0"
   },
   "packageManager": "npm@10.9.2",
@@ -63,7 +63,7 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "turbo": "2.8.20",
-    "typescript": "6.0.2"
+    "typescript": "5.9.3"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

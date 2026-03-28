@@ -50,6 +50,13 @@ export const patientIdParamSchema = z.object({
   patientId: objectId,
 });
 
+export const prescriptionIdParamSchema = z.object({
+  id:             objectId,
+  prescriptionId: objectId,
+});
+
+export { prescriptionSchema };
+
 export const updateEncounterSchema = createEncounterSchema.partial().refine(
   (d) => Object.keys(d).length > 0,
   'At least one field is required',

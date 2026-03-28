@@ -70,7 +70,6 @@ const prescriptionSchema = new Schema<Prescription>(
     duration:   { type: String },
     notes:      { type: String },
   },
-  { _id: false }
 );
 
 const encounterSchema = new Schema<Encounter>(

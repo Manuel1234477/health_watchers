@@ -1,22 +1,26 @@
 /** @type {import('jest').Config} */
 module.exports = {
-  preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/apps', '<rootDir>/packages'],
+  roots: ['<rootDir>/apps/api/src', '<rootDir>/packages'],
+  testMatch: ['**/*.test.ts'],
   moduleNameMapper: {
     '^@api/(.*)$': '<rootDir>/apps/api/src/$1',
     '^@health-watchers/config$': '<rootDir>/packages/config/index.ts',
   },
   transform: {
-    '^.+\\.tsx?$': [
+    '^.+\\.ts$': [
       'ts-jest',
       {
-        diagnostics: false,
+        isolatedModules: true,
+        useESM: false,
         tsconfig: {
+          target: 'ES2020',
           module: 'commonjs',
           esModuleInterop: true,
+          allowSyntheticDefaultImports: true,
           strict: false,
           skipLibCheck: true,
+          ignoreDeprecations: '6.0',
           types: ['jest', 'node'],
           baseUrl: '.',
           paths: {
@@ -27,5 +31,6 @@ module.exports = {
       },
     ],
   },
-  testPathIgnorePatterns: ['/node_modules/'],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/'],
+  moduleFileExtensions: ['ts', 'js', 'json'],
 };
