@@ -7,7 +7,10 @@ import {
   LoginDto, RefreshDto, RegisterDto,
   loginSchema, refreshSchema, registerSchema, mfaVerifySchema, mfaChallengeSchema,
   MfaVerifyDto, MfaChallengeDto,
+  forgotPasswordSchema, resetPasswordSchema,
+  ForgotPasswordDto, ResetPasswordDto,
 } from './auth.validation';
+import { sendPasswordResetEmail } from '@api/lib/email.service';
 import { UserModel } from './models/user.model';
 import { ClinicModel } from '../clinics/clinic.model';
 import {
@@ -341,6 +344,89 @@ router.post('/register', validateRequest({ body: registerSchema }), async (req: 
 
   const user = await UserModel.create({ fullName, email, password, role, clinicId });
   return res.status(201).json({ status: 'success', data: { id: user.id, email: user.email, role: user.role } });
+});
+
+const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
+const GENERIC_RESET_MSG = 'If that email is registered, a reset link has been sent.';
+
+/**
+ * @swagger
+ * /auth/forgot-password:
+ *   post:
+ *     summary: Request a password reset email
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email: { type: string, format: email }
+ *     responses:
+ *       200:
+ *         description: Generic success (prevents user enumeration)
+ */
+router.post('/forgot-password', validateRequest({ body: forgotPasswordSchema }), async (req: Request<Record<string, never>, unknown, ForgotPasswordDto>, res: Response) => {
+  const email = req.body.email.toLowerCase().trim();
+  const user = await UserModel.findOne({ email, isActive: true }).select('+resetPasswordTokenHash +resetPasswordExpiresAt');
+
+  // Always respond generically — do not reveal whether email exists
+  if (!user) return res.json({ status: 'success', message: GENERIC_RESET_MSG });
+
+  // Generate a cryptographically secure random token
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  user.resetPasswordTokenHash = hashToken(rawToken);
+  user.resetPasswordExpiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
+  await user.save();
+
+  await sendPasswordResetEmail(email, rawToken);
+
+  return res.json({ status: 'success', message: GENERIC_RESET_MSG });
+});
+
+/**
+ * @swagger
+ * /auth/reset-password:
+ *   post:
+ *     summary: Reset password using a valid reset token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token, newPassword]
+ *             properties:
+ *               token:       { type: string }
+ *               newPassword: { type: string, minLength: 8 }
+ *     responses:
+ *       200:
+ *         description: Password updated successfully
+ *       400:
+ *         description: Token invalid, expired, or already used
+ */
+router.post('/reset-password', validateRequest({ body: resetPasswordSchema }), async (req: Request<Record<string, never>, unknown, ResetPasswordDto>, res: Response) => {
+  const tokenHash = hashToken(req.body.token);
+
+  const user = await UserModel.findOne({ resetPasswordTokenHash: tokenHash })
+    .select('+resetPasswordTokenHash +resetPasswordExpiresAt');
+
+  if (!user || !user.resetPasswordExpiresAt || user.resetPasswordExpiresAt < new Date()) {
+    return res.status(400).json({ error: 'InvalidToken', message: 'Reset token is invalid or has expired' });
+  }
+
+  // Update password — pre-save hook will hash it
+  user.password = req.body.newPassword;
+  // Single-use: clear reset fields and invalidate any active sessions
+  user.resetPasswordTokenHash = undefined;
+  user.resetPasswordExpiresAt = undefined;
+  user.refreshTokenHash = undefined;
+  await user.save();
+
+  return res.json({ status: 'success', message: 'Password has been reset successfully' });
 });
 
 export const authRoutes = router;
