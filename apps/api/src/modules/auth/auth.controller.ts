@@ -86,13 +86,8 @@ router.post('/register', authenticate, validateRequest({ body: registerSchema })
     clinicId: req.body.clinicId,
   });
 
-  const p = { userId: user.id, role: user.role, clinicId: String(user.clinicId) };
-  const accessToken  = signAccessToken(p);
-  const refreshToken = signRefreshToken(p);
-
-  await UserModel.findByIdAndUpdate(user.id, { refreshTokenHash: hashToken(refreshToken) });
-
-  return res.status(201).json({ status: 'success', data: { accessToken, refreshToken } });
+  const { password: _pw, ...sanitized } = user.toObject();
+  return res.status(201).json({ status: 'success', data: sanitized });
 });
 
 /**
@@ -244,9 +239,6 @@ router.post(
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Logged out successfully
  */
 router.post('/logout', authenticate, async (req: Request, res: Response) => {
   await UserModel.findByIdAndUpdate(req.user!.userId, { refreshTokenHash: undefined });
