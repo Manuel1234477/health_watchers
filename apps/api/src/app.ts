@@ -1,43 +1,19 @@
-import './config/env'; // must be first — validates all required env vars before anything else
-import express from 'express';
-import cors from 'cors';
-import mongoSanitize from 'express-mongo-sanitize';
-import mongoose from 'mongoose';
-import { config } from '@health-watchers/config';
-import { connectDB } from './config/db';
-import { authRoutes } from './modules/auth/auth.controller';
-import { userRoutes } from './modules/users/users.controller';
-import { patientRoutes } from './modules/patients/patients.controller';
-import { encounterRoutes } from './modules/encounters/encounters.controller';
-import { paymentRoutes } from './modules/payments/payments.controller';
-import { webhookRoutes } from './modules/webhooks/webhooks.controller';
-import { auditLogRoutes } from './modules/audit/audit-logs.controller';
-import aiRoutes from './modules/ai/ai.routes';
-import { setupSwagger } from './docs/swagger';
-import dashboardRoutes from './modules/dashboard/dashboard.routes';
-import { errorHandler } from './middlewares/error.middleware';
-import { appointmentRoutes } from './modules/appointments/appointments.controller';
-import {
-  startPaymentExpirationJob,
-  stopPaymentExpirationJob,
-} from './modules/payments/services/payment-expiration-job';
-import logger from './utils/logger';
+import express from "express";
+import { config } from "@health-watchers/config";
+import { authRoutes } from "./modules/auth/auth.controller";
+import { patientRoutes } from "./modules/patients/patients.controller";
+import { encounterRoutes } from "./modules/encounters/encounters.controller";
+import { paymentRoutes } from "./modules/payments/payments.controller";
+import aiRoutes from "./modules/ai/ai.routes";
+import { setupSwagger } from "./docs/swagger";
+import dashboardRoutes from "./modules/dashboard/dashboard.routes";
+import { usersRoutes } from "./modules/users/users.controller";
 
 const app = express();
 app.disable('x-powered-by');
 
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
-  .split(',')
-  .map((o) => o.trim());
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-      callback(Object.assign(new Error('Not allowed by CORS'), { status: 403 }));
-    },
-    credentials: true,
-  }),
+app.get("/health", (_req, res) =>
+  res.json({ status: "ok", service: "health-watchers-api" }),
 );
 
 app.options('*', cors());
@@ -94,6 +70,13 @@ app.use('/api/v1/audit-logs', auditLogRoutes);
 app.use('/api/v1/ai', express.json({ limit: aiLimit }), aiRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/appointments', appointmentRoutes);
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/patients", patientRoutes);
+app.use("/api/v1/encounters", encounterRoutes);
+app.use("/api/v1/payments", paymentRoutes);
+app.use("/api/v1/ai", aiRoutes);
+app.use("/api/v1/dashboard", dashboardRoutes);
+app.use("/api/v1/users", usersRoutes);
 
 setupSwagger(app);
 
