@@ -1,137 +1,60 @@
-import { Router, Request, Response } from 'express';
-import { EncounterModel } from './encounter.model';
-import { authenticate, requireRoles } from '@api/middlewares/auth.middleware';
-import { validateRequest } from '@api/middlewares/validate.middleware';
-import { objectIdSchema } from '@api/middlewares/objectid.schema';
-import { asyncHandler } from '@api/middlewares/async.handler';
-import {
-  createEncounterSchema,
-  updateEncounterSchema,
-  listEncountersQuerySchema,
-  ListEncountersQuery,
-} from './encounter.validation';
-import { toEncounterResponse } from './encounters.transformer';
-import { paginate, parsePagination } from '@api/utils/paginate';
-import { auditLog } from '@api/middlewares/audit.middleware';
+// apps/api/src/modules/encounters/encounters.controller.ts
 
-const router = Router();
-router.use(authenticate);
-router.use(auditLog('Encounter'));
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { EncountersService } from './encounters.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { User } from '../users/user.entity';
 
-const WRITE_ROLES = requireRoles('DOCTOR', 'CLINIC_ADMIN', 'SUPER_ADMIN');
+@Controller('encounters')
+@UseGuards(JwtAuthGuard)
+export class EncountersController {
+  constructor(private readonly encountersService: EncountersService) {}
 
-// GET /encounters — paginated list scoped to the authenticated clinic
-router.get(
-  '/',
-  validateRequest({ query: listEncountersQuerySchema }),
-  asyncHandler(async (req: Request, res: Response) => {
-    const { patientId, doctorId, status, date, page, limit } = req.query as unknown as ListEncountersQuery;
+  // EXISTING ROUTES...
+  @Post()
+  create(@Body() createEncounterDto: CreateEncounterDto) {
+    // ...
+  }
 
-    const filter: Record<string, unknown> = { clinicId: req.user!.clinicId };
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    // ...
+  }
 
-    if (patientId) filter.patientId         = patientId;
-    if (doctorId)  filter.attendingDoctorId = doctorId;
-    if (status)    filter.status            = status;
+  @Get('patient/:patientId')
+  findByPatient(@Param('patientId') patientId: string) {
+    // ...
+  }
 
-    if (date) {
-      const start = new Date(date);
-      const end   = new Date(date);
-      end.setUTCDate(end.getUTCDate() + 1);
-      filter.createdAt = { $gte: start, $lt: end };
-    }
-
-    const skip = (page - 1) * limit;
-    const [encounters, total] = await Promise.all([
-      EncounterModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-      EncounterModel.countDocuments(filter),
-    ]);
-
-    res.json({
-      status: 'success',
-      data: encounters.map(toEncounterResponse),
-      meta: { total, page, limit },
-    });
-  }),
-);
-
-// GET /encounters/patient/:patientId — MUST be before /:id to avoid route shadowing
-router.get(
-  '/patient/:patientId',
-  validateRequest({ params: objectIdSchema }),
-  asyncHandler(async (req: Request, res: Response) => {
-    const pagination = parsePagination(req.query as Record<string, unknown>);
-    if (!pagination) {
-      return res
-        .status(400)
-        .json({ error: 'ValidationError', message: 'limit must not exceed 100' });
-    }
-    const { page, limit } = pagination;
+  // NEW: GET /encounters with pagination + filters
+  @Get()
+  async findAll(
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+    @Query('patientId') patientId?: string,
+    @Query('status') status?: string,
+    @CurrentUser() user: User,
+  ) {
+    const parsedPage = parseInt(page, 10);
+    const parsedLimit = parseInt(limit, 10);
     
-    const filter = { 
-      patientId: req.params.patientId, 
-      clinicId: req.user!.clinicId 
+    const result = await this.encountersService.findAllPaginated({
+      page: parsedPage,
+      limit: parsedLimit,
+      patientId,
+      status,
+      clinicId: user.clinicId, // Scope to caller's clinic
+    });
+
+    return {
+      status: 'success',
+      data: result.data,
+      meta: {
+        total: result.total,
+        page: parsedPage,
+        limit: parsedLimit,
+      },
     };
-    
-    const result = await paginate(EncounterModel, filter, page, limit, { createdAt: -1 });
-    
-    return res.json({
-      status: 'success',
-      data: result.data.map(toEncounterResponse),
-      meta: result.meta,
-    });
-  }),
-);
-
-// GET /encounters/:id
-router.get(
-  '/:id',
-  validateRequest({ params: objectIdSchema }),
-  asyncHandler(async (req: Request, res: Response) => {
-    const encounter = await EncounterModel.findOne({ 
-      _id: req.params.id, 
-      clinicId: req.user!.clinicId 
-    }).lean();
-    
-    if (!encounter) {
-      return res.status(404).json({ error: 'NotFound', message: 'Encounter not found' });
-    }
-    
-    res.json({ status: 'success', data: toEncounterResponse(encounter) });
-  }),
-);
-
-// POST /encounters
-router.post(
-  '/',
-  WRITE_ROLES,
-  validateRequest({ body: createEncounterSchema }),
-  asyncHandler(async (req: Request, res: Response) => {
-    const encounter = await EncounterModel.create({
-      ...req.body,
-      clinicId: req.user!.clinicId,
-    });
-    res.status(201).json({ status: 'success', data: toEncounterResponse(encounter) });
-  }),
-);
-
-// PATCH /encounters/:id
-router.patch(
-  '/:id',
-  WRITE_ROLES,
-  validateRequest({ params: objectIdSchema, body: updateEncounterSchema }),
-  asyncHandler(async (req: Request, res: Response) => {
-    const encounter = await EncounterModel.findOneAndUpdate(
-      { _id: req.params.id, clinicId: req.user!.clinicId },
-      req.body,
-      { new: true, runValidators: true },
-    ).lean();
-    
-    if (!encounter) {
-      return res.status(404).json({ error: 'NotFound', message: 'Encounter not found' });
-    }
-    
-    res.json({ status: 'success', data: toEncounterResponse(encounter) });
-  }),
-);
-
-export const encounterRoutes = router;
+  }
+}
