@@ -47,19 +47,7 @@ export default function EncountersClient({ labels }: { labels: Labels }) {
     type: 'success' | 'error';
   } | null>(null);
 
-  const {
-    data: encounters = [],
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: queryKeys.encounters.list(),
-    queryFn: async () => {
-      const res = await fetch(`${API}/encounters`);
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
-      return data.data || data || [];
-    },
-  });
+  const { data: encounters = [], isLoading, error } = useEncounters();
 
   const handleCreate = async (data: CreateEncounterData) => {
     const res = await fetch(`${API}/encounters`, {

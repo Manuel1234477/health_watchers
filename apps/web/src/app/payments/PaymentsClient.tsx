@@ -30,19 +30,7 @@ export default function PaymentsClient() {
     type: 'success' | 'error';
   } | null>(null);
 
-  const {
-    data: payments = [],
-    isLoading,
-    error,
-  } = useQuery<Payment[]>({
-    queryKey: queryKeys.payments.list(),
-    queryFn: async () => {
-      const res = await fetch(`${API}/payments`);
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
-      return data.data ?? data ?? [];
-    },
-  });
+  const { data: payments = [], isLoading, error } = usePayments();
 
   const handleCreate = async (data: PaymentIntentData) => {
     const res = await fetch(`${API}/payments/intent`, {
@@ -107,19 +95,7 @@ export default function PaymentsClient() {
         />
       )}
 
-      {!isLoading && !error && payments.length === 0 && (
-        <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 px-6 py-12 text-center">
-          <h2 className="text-lg font-semibold text-neutral-900">No records found</h2>
-          <p className="mt-2 text-sm text-neutral-600">
-            No payments found. Create a new payment to get started.
-          </p>
-          <Button className="mt-5" onClick={() => setShowForm(true)}>
-            + New Payment
-          </Button>
-        </div>
-      )}
-
-      {!isLoading && !error && payments.length > 0 && (
+      {!isLoading && !error && (
         <PaymentTable payments={payments} network={NETWORK} onConfirm={handleConfirm} />
       )}
 
