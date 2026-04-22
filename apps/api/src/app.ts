@@ -49,6 +49,7 @@ app.use(
         frameAncestors: ["'none'"],
       },
     },
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
   }),
 );
 app.use(compression());
