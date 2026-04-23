@@ -1,6 +1,5 @@
 'use client';
 
-<<<<<<< feat/324
 import React, { useState, useEffect, useCallback } from 'react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -11,7 +10,6 @@ interface ToastItem {
   id: string;
   message: string;
   variant: ToastVariant;
-=======
 import { useEffect } from 'react';
 
 interface ToastProps {
@@ -52,7 +50,7 @@ export function Toast({ message, type = 'info', onClose, duration = 4000 }: Toas
       )}
     </div>
   );
->>>>>>> main
+
 }
 
 // ─── Singleton Event Bus ──────────────────────────────────────────────────────
