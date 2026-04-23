@@ -20,7 +20,6 @@ import {
   Toast,
 } from '@/components/ui';
 import { StellarAddressDisplay } from '@/components/ui/StellarAddressDisplay';
-import { CreateEncounterForm, type CreateEncounterData } from '@/components/forms/CreateEncounterForm';
 import { CreatePaymentIntentForm, type CreatePaymentData } from '@/components/forms/CreatePaymentIntentForm';
 import { queryKeys } from '@/lib/queryKeys';
 import { API_V1 } from '@/lib/api';
@@ -108,7 +107,6 @@ export default function PatientDetailClient({
   const router = useRouter();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState('encounters');
-  const [showEncounterForm, setShowEncounterForm] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -159,21 +157,6 @@ export default function PatientDetailClient({
   });
 
   const canEdit = user && EDIT_ROLES.has(user.role);
-
-  const handleCreateEncounter = async (data: CreateEncounterData) => {
-    const res = await fetch(`${API_V1}/encounters`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.message ?? `Error ${res.status}`);
-    }
-    setShowEncounterForm(false);
-    setToast({ message: 'Encounter created.', type: 'success' });
-    queryClient.invalidateQueries({ queryKey: queryKeys.encounters.byPatient(patientId) });
-  };
 
   const handleCreatePayment = async (data: CreatePaymentData) => {
     const res = await fetch(`${API_V1}/payments/intent`, {
@@ -330,7 +313,7 @@ export default function PatientDetailClient({
         <TabsContent value="encounters">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm text-neutral-500">{encounters.length} record(s)</p>
-            <Button size="sm" variant="primary" onClick={() => setShowEncounterForm(true)}>
+            <Button size="sm" variant="primary" onClick={() => router.push(`/encounters/new?patientId=${patientId}`)}>
               + {labels.newEncounter}
             </Button>
           </div>
@@ -478,19 +461,6 @@ export default function PatientDetailClient({
           </div>
         </TabsContent>
       </Tabs>
-
-      {/* New Encounter slide-over */}
-      <SlideOver
-        isOpen={showEncounterForm}
-        onClose={() => setShowEncounterForm(false)}
-        title={labels.newEncounter}
-      >
-        <CreateEncounterForm
-          onSubmit={handleCreateEncounter}
-          onCancel={() => setShowEncounterForm(false)}
-          defaultPatientId={patientId}
-        />
-      </SlideOver>
 
       {/* New Payment slide-over */}
       <SlideOver
