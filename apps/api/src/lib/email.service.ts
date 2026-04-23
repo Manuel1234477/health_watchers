@@ -173,3 +173,4 @@ export function sendAiSummaryReadyEmail(
   `;
   enqueue(to, 'AI Clinical Summary Ready — Health Watchers', text, html);
 }
+}
