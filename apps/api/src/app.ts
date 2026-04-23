@@ -52,6 +52,25 @@ app.use(
   }),
 );
 app.use(compression());
+
+// ── CORS ──────────────────────────────────────────────────────────────────────
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow server-to-server requests (no origin) and listed origins
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error(`CORS: origin '${origin}' not allowed`));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  }),
+);
 app.options('*', cors());
 
 // ── HTTP request logging ──────────────────────────────────────────────────────
