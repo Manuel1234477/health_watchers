@@ -80,4 +80,38 @@ const server: Server = app.listen(PORT, () => {
   logger.info({ port: PORT, secret: SHARED_SECRET ? 'SET' : 'MISSING' }, 'Stellar Service running');
 });
 
+// Graceful shutdown handler
+const shutdown = async (signal: string) => {
+  logger.info(`${signal} received, starting graceful shutdown`);
+
+  // Stop accepting new connections
+  server.close(() => {
+    logger.info('HTTP server closed');
+    logger.info('Graceful shutdown completed');
+    process.exit(0);
+  });
+
+  // Force exit after 30 seconds if graceful shutdown hangs
+  setTimeout(() => {
+    logger.error('Graceful shutdown timeout (30s), forcing exit');
+    process.exit(1);
+  }, 30000);
+};
+
+// Handle termination signals
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err: unknown) => {
+  logger.error({ err }, 'Uncaught exception');
+  shutdown('uncaughtException');
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason: unknown) => {
+  logger.error({ reason }, 'Unhandled rejection');
+  // Log but don't exit - let the process continue
+});
+
 export default server;
