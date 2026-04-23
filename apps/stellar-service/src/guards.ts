@@ -1,4 +1,5 @@
 import { stellarConfig } from "./config";
+import logger from "./logger";
 
 /**
  * Run at startup. Exits with code 1 if mainnet is configured without
@@ -8,22 +9,19 @@ export function assertMainnetSafety(): void {
   const { network, mainnetConfirmed, dryRun } = stellarConfig;
 
   if (network === "mainnet") {
-    // Prominent warning regardless
-    console.warn("⚠️  ============================================================");
-    console.warn("⚠️  STELLAR_NETWORK=mainnet — REAL XLM WILL BE USED");
-    console.warn("⚠️  ============================================================");
+    logger.warn("STELLAR_NETWORK=mainnet — REAL XLM WILL BE USED");
 
     if (!mainnetConfirmed) {
-      console.error(
-        "❌  STELLAR_MAINNET_CONFIRMED is not set to 'true'.\n" +
-        "    Set STELLAR_MAINNET_CONFIRMED=true to acknowledge mainnet operation.\n" +
-        "    Exiting to prevent accidental real-funds usage."
+      logger.error(
+        "STELLAR_MAINNET_CONFIRMED is not set to 'true'. " +
+        "Set STELLAR_MAINNET_CONFIRMED=true to acknowledge mainnet operation. " +
+        "Exiting to prevent accidental real-funds usage."
       );
       process.exit(1);
     }
 
     if (dryRun) {
-      console.warn("⚠️  STELLAR_DRY_RUN=true — transactions will be simulated, not submitted.");
+      logger.warn("STELLAR_DRY_RUN=true — transactions will be simulated, not submitted.");
     }
   }
 }

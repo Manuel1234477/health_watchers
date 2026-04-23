@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { Types } from 'mongoose';
 import { authenticate, requireRoles } from '@api/middlewares/auth.middleware';
 import { auditLog } from '@api/modules/audit/audit.service';
+import logger from '@api/utils/logger';
 import {
   buildPatientRecord,
   sendPatientJson,
@@ -52,12 +53,12 @@ router.get('/patients/:id/export', authenticate, async (req: Request, res: Respo
     auditLog(
       { action: 'EXPORT_PATIENT_DATA', resourceType: 'Patient', resourceId: id, userId, clinicId },
       req,
-    ).catch(console.error);
+    ).catch((err) => logger.error({ err }, 'Audit log failed for patient export'));
 
     if (format === 'json') return sendPatientJson(res, record);
     return sendPatientPdf(res, record);
   } catch (err: any) {
-    console.error('[export] patient export error:', err);
+    logger.error({ err }, 'Patient export error');
     return res.status(500).json({ error: 'InternalError', message: 'Export failed' });
   }
 });
@@ -90,11 +91,11 @@ router.get(
       auditLog(
         { action: 'EXPORT_PATIENT_DATA', resourceType: 'Clinic', resourceId: id, userId: req.user!.userId, clinicId: req.user!.clinicId },
         req,
-      ).catch(console.error);
+      ).catch((err) => logger.error({ err }, 'Audit log failed for clinic export'));
 
       return sendClinicZip(res, id, record);
     } catch (err: any) {
-      console.error('[export] clinic export error:', err);
+      logger.error({ err }, 'Clinic export error');
       return res.status(500).json({ error: 'InternalError', message: 'Export failed' });
     }
   },

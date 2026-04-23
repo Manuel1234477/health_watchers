@@ -1,9 +1,10 @@
 import './config/env'; // must be first — validates env vars
+import crypto from 'crypto';
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import compression from 'compression';
-import morgan from 'morgan';
+import pinoHttp from 'pino-http';
 import mongoSanitize from 'express-mongo-sanitize';
 import { connectDB } from './config/db';
 import { authRoutes } from './modules/auth/auth.controller';
@@ -74,13 +75,15 @@ app.use(
 );
 app.options('*', cors());
 
-// ── HTTP request logging ──────────────────────────────────────────────────────
+// ── HTTP request logging with correlation ID ──────────────────────────────────
 const isProd = process.env.NODE_ENV === 'production';
-const morganStream = { write: (msg: string) => logger.info(msg.trimEnd()) };
 app.use(
-  morgan(isProd ? 'combined' : 'dev', {
-    stream: morganStream,
-  skip: (req: express.Request) => isProd && req.path === '/health',
+  pinoHttp({
+    logger,
+    genReqId: (req) =>
+      (req.headers['x-request-id'] as string) ?? crypto.randomUUID(),
+    autoLogging: { ignore: (req) => isProd && req.url === '/health' },
+    redact: ['req.headers.authorization'],
   }),
 );
 
