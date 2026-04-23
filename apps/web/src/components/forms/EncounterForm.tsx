@@ -177,8 +177,9 @@ export default function EncounterForm({
         <div className="mb-5 rounded-md bg-neutral-0 p-3">
           <div className="mb-2 h-2 overflow-hidden rounded-full bg-neutral-100">
             <div
-              className="h-full rounded-full bg-primary-700 transition-all"
-              style={{ width: `${progress}%` }}
+              className={`h-full rounded-full bg-primary-700 transition-all ${
+                progress <= 33 ? 'w-1/3' : progress <= 66 ? 'w-2/3' : 'w-full'
+              }`}
             />
           </div>
           <div className="grid grid-cols-3 text-[11px] font-medium text-neutral-500">

@@ -443,7 +443,10 @@ export default function PatientDetailClient({
             {aiLoading ? (
               <div className="space-y-2.5" aria-busy="true">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-3.5 animate-pulse rounded bg-neutral-200" style={{ width: `${70 + i * 7}%` }} />
+                  <div 
+                    key={i} 
+                    className={`h-3.5 animate-pulse rounded bg-neutral-200 ${i === 1 ? 'w-[70%]' : i === 2 ? 'w-[77%]' : i === 3 ? 'w-[84%]' : 'w-[91%]'}`} 
+                  />
                 ))}
               </div>
             ) : aiSummary ? (

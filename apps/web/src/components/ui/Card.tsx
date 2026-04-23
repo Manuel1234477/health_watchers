@@ -14,7 +14,7 @@ const paddingMap = {
 export function Card({ padding = 'md', className, children, ...props }: CardProps) {
   return (
     <div
-      className={['bg-neutral-0 rounded-lg border border-neutral-200 shadow-sm', paddingMap[padding], className ?? ''].join(' ')}
+      className={['bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700 shadow-sm', paddingMap[padding], className ?? ''].join(' ')}
       {...props}
     >
       {children}
