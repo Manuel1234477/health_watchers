@@ -6,6 +6,7 @@ import { EncounterModel } from '@api/modules/encounters/encounter.model';
 import { PaymentRecordModel } from '@api/modules/payments/models/payment-record.model';
 import { UserModel } from '@api/modules/auth/models/user.model';
 import { Types } from 'mongoose';
+import logger from '@api/utils/logger';
 
 // ─── Sanitization ──────────────────────────────────────────────────────────
 
@@ -153,7 +154,7 @@ export function sendClinicZip(
   const archive = archiver('zip', { zlib: { level: 9 } });
 
   archive.on('error', (err: Error) => {
-    console.error('[export] archiver error:', err);
+    logger.error({ err }, 'Archiver error during clinic export');
     res.destroy(err);
   });
 

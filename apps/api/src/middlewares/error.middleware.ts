@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { Error as MongooseError } from 'mongoose';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
+import logger from '../utils/logger';
 
 const isDev = process.env.NODE_ENV !== 'production';
 
@@ -29,7 +30,7 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
   }
 
   if (isDev) {
-    console.error(err);
+    logger.error({ err }, 'Unhandled error');
   }
 
   const stack = isDev && err instanceof Error ? err.stack : undefined;

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { isValidObjectId } from 'mongoose';
 import { generateClinicalSummary, isAIServiceAvailable } from './ai.service';
 import { authenticate } from '../../middlewares/auth.middleware';
+import logger from '../../utils/logger';
 
 const router = Router();
 
@@ -67,7 +68,7 @@ router.post('/summarize', authenticate, async (req: Request, res: Response) => {
       encounterId,
     });
   } catch (error: any) {
-    console.error('AI summarize error:', error);
+    logger.error({ err: error }, 'AI summarize error');
 
     // Handle Gemini API specific errors
     if (error.message.includes('Failed to generate AI summary')) {

@@ -21,7 +21,7 @@ import aiRoutes from './modules/ai/ai.routes';
 import { setupSwagger } from './docs/swagger';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
 import { errorHandler } from './middlewares/error.middleware';
-import { authLimiter, generalLimiter } from './middlewares/rate-limit.middleware';
+import { authLimiter, forgotPasswordLimiter, aiLimiter, paymentLimiter, generalLimiter } from './middlewares/rate-limit.middleware';
 import { appointmentRoutes } from './modules/appointments/appointments.controller';
 import {
   startPaymentExpirationJob,
@@ -52,9 +52,29 @@ app.use(
         frameAncestors: ["'none'"],
       },
     },
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
   }),
 );
 app.use(compression());
+
+// ── CORS ──────────────────────────────────────────────────────────────────────
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow server-to-server requests (no origin) and listed origins
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error(`CORS: origin '${origin}' not allowed`));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  }),
+);
 app.options('*', cors());
 
 // ── HTTP request logging with correlation ID ──────────────────────────────────
@@ -80,15 +100,16 @@ app.get('/health', (_req, res) =>
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api/v1', generalLimiter);
+app.use('/api/v1/auth/forgot-password', forgotPasswordLimiter);
 app.use('/api/v1/auth', authLimiter, authRoutes);
 app.use('/api/v1/clinics', clinicRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/patients', patientRoutes);
 app.use('/api/v1/encounters', encounterRoutes);
-app.use('/api/v1/payments', paymentRoutes);
+app.use('/api/v1/payments', paymentLimiter, paymentRoutes);
 app.use('/api/v1/webhooks', webhookRoutes);
 app.use('/api/v1/audit-logs', auditLogRoutes);
-app.use('/api/v1/ai', express.json({ limit: aiLimit }), aiRoutes);
+app.use('/api/v1/ai', aiLimiter, express.json({ limit: aiLimit }), aiRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/appointments', appointmentRoutes);
 

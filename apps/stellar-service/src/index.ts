@@ -1,9 +1,12 @@
 // apps/stellar-service/src/index.ts
 
+import crypto from 'crypto';
 import express from 'express';
 import { Server } from 'http';
+import pinoHttp from 'pino-http';
 import { fundAccount, createIntent, verifyIntent } from './stellar.js'; // your existing imports
 import dotenv from 'dotenv';
+import logger from './logger.js';
 
 dotenv.config();
 
@@ -12,7 +15,7 @@ const PORT = process.env.STELLAR_PORT || 3002;
 const SHARED_SECRET = process.env.STELLAR_SERVICE_SECRET;
 
 if (!SHARED_SECRET) {
-  console.error('❌ STELLAR_SERVICE_SECRET required!');
+  logger.error('STELLAR_SERVICE_SECRET required');
   process.exit(1);
 }
 
@@ -34,6 +37,11 @@ const requireSecret = (req: express.Request, res: express.Response, next: expres
 };
 
 app.use(express.json());
+app.use(pinoHttp({
+  logger,
+  genReqId: (req) => (req.headers['x-request-id'] as string) ?? crypto.randomUUID(),
+  redact: ['req.headers.authorization'],
+}));
 
 // ✅ PROTECTED: POST /fund (requires secret)
 app.post('/fund', requireSecret, async (req, res) => {
@@ -55,6 +63,7 @@ app.post('/intent', requireSecret, async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
 
 // ✅ PUBLIC: GET /verify/:hash (no auth needed)
 app.get('/verify/:hash', async (req, res) => {
@@ -68,8 +77,7 @@ app.get('/verify/:hash', async (req, res) => {
 });
 
 const server: Server = app.listen(PORT, () => {
-  console.log(`🚀 Stellar Service running on port ${PORT}`);
-  console.log(`🔒 Protected by secret: ${SHARED_SECRET ? 'SET' : 'MISSING'}`);
+  logger.info({ port: PORT, secret: SHARED_SECRET ? 'SET' : 'MISSING' }, 'Stellar Service running');
 });
 
 export default server;
