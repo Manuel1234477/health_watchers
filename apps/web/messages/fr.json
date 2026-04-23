@@ -2,7 +2,8 @@
   "nav": {
     "patients": "Patients",
     "encounters": "Consultations",
-    "payments": "Paiements"
+    "payments": "Paiements",
+    "wallet": "Portefeuille"
   },
   "login": {
     "title": "Connectez-vous à Health Watchers",
@@ -58,7 +59,8 @@
     "back": "Retour aux Patients",
     "loading": "Chargement des détails du patient...",
     "error": "Impossible de charger les détails du patient.",
-    "details": "Détails du Patient",
+    "notFound": "Patient introuvable.",
+    "demographics": "Données démographiques",
     "encounters": "Historique des Consultations",
     "noEncounters": "Aucune consultation enregistrée."
   },
@@ -84,5 +86,24 @@
     "cancel": "Annuler",
     "successToast": "Patient enregistré avec succès !",
     "errorFallback": "Échec de l'enregistrement du patient. Veuillez réessayer."
+    "payments": "Historique des Paiements",
+    "aiInsights": "Analyse IA",
+    "noEncounters": "Aucune consultation enregistrée.",
+    "noPayments": "Aucun paiement enregistré.",
+    "newEncounter": "Nouvelle Consultation",
+    "initiatePayment": "Initier un Paiement",
+    "editPatient": "Modifier le Patient",
+    "generateSummary": "Générer un Résumé IA",
+    "aiSummaryPlaceholder": "Cliquez sur « Générer un Résumé IA » pour analyser l'historique des consultations.",
+    "lastAnalysis": "Dernière analyse",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "registeredOn": "Enregistré le",
+    "age": "Âge",
+    "dob": "Date de naissance",
+    "sex": "Sexe",
+    "contact": "Contact",
+    "address": "Adresse",
+    "systemId": "ID Système"
   }
 }

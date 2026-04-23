@@ -2,7 +2,8 @@
   "nav": {
     "patients": "Patients",
     "encounters": "Encounters",
-    "payments": "Payments"
+    "payments": "Payments",
+    "wallet": "Wallet"
   },
   "login": {
     "title": "Sign in to Health Watchers",
@@ -58,7 +59,8 @@
     "back": "Back to Patients",
     "loading": "Loading patient details...",
     "error": "Failed to load patient details.",
-    "details": "Patient Details",
+    "notFound": "Patient not found.",
+    "demographics": "Patient Demographics",
     "encounters": "Encounter History",
     "noEncounters": "No encounters recorded."
   },
@@ -84,5 +86,24 @@
     "cancel": "Cancel",
     "successToast": "Patient registered successfully!",
     "errorFallback": "Failed to register patient. Please try again."
+    "payments": "Payment History",
+    "aiInsights": "AI Insights",
+    "noEncounters": "No encounters recorded.",
+    "noPayments": "No payments recorded.",
+    "newEncounter": "New Encounter",
+    "initiatePayment": "Initiate Payment",
+    "editPatient": "Edit Patient",
+    "generateSummary": "Generate AI Summary",
+    "aiSummaryPlaceholder": "Click \"Generate AI Summary\" to analyse this patient's encounter history.",
+    "lastAnalysis": "Last analysis",
+    "active": "Active",
+    "inactive": "Inactive",
+    "registeredOn": "Registered",
+    "age": "Age",
+    "dob": "Date of Birth",
+    "sex": "Sex",
+    "contact": "Contact",
+    "address": "Address",
+    "systemId": "System ID"
   }
 }

@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getLocale } from 'next-intl/server';
 import { QueryProvider } from '@/lib/QueryProvider';
-import { AuthProvider } from '@/context/AuthContext';
+
 import { Toaster } from '@/components/ui';
 import './globals.css';
 
@@ -79,9 +79,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={locale}>
       <body className="min-h-screen bg-neutral-50 font-sans antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <QueryProvider>
-            <AuthProvider>{children}</AuthProvider>
-          </QueryProvider>
+
           <Toaster />
         </NextIntlClientProvider>
       </body>
