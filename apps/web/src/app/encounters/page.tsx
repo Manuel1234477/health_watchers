@@ -32,6 +32,8 @@ export default function EncountersPage() {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [total, setTotal] = useState(0);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const { data, isLoading, error } = useEncounters(page);
@@ -40,6 +42,26 @@ export default function EncountersPage() {
   const limit = data?.meta?.limit ?? 20;
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
+<<<<<<< fix/198-encounters-list-endpoint
+  const fetchEncounters = async () => {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+      
+      const response = await fetch(`/api/v1/encounters?${params}`);
+      const data: ApiResponse = await response.json();
+      
+      if (data.status === 'success') {
+        setEncounters(data.data);
+        setTotal(data.meta.total);
+      }
+    } catch (error) {
+      console.error('Failed to fetch encounters:', error);
+    } finally {
+      setLoading(false);
+=======
   const handleCreate = async (formData: CreateEncounterData) => {
     const res = await fetch(`${API}/encounters`, {
       method: 'POST',
@@ -49,12 +71,55 @@ export default function EncountersPage() {
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       throw new Error(body.message || `Error ${res.status}`);
+>>>>>>> main
     }
     setShowForm(false);
     setToast({ message: 'Encounter created successfully.', type: 'success' });
     queryClient.invalidateQueries({ queryKey: queryKeys.encounters.list() });
   };
 
+<<<<<<< fix/198-encounters-list-endpoint
+  const totalPages = Math.ceil(total / limit);
+
+  if (loading) return <div>Loading encounters...</div>;
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">Encounters</h1>
+      <div className="grid gap-4">
+        {encounters.map((encounter) => (
+          <div key={encounter._id} className="p-4 border rounded-lg">
+            <div className="font-medium">
+              {encounter.patientId?.firstName} {encounter.patientId?.lastName}
+              <span className="text-sm text-gray-500 ml-2">
+                ({encounter.patientId?.systemId})
+              </span>
+            </div>
+            <div className="text-sm text-gray-600">
+              Status: <span className="font-semibold">{encounter.status}</span>
+            </div>
+            <div className="text-xs text-gray-500">
+              {new Date(encounter.createdAt).toLocaleDateString()}
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      {/* Pagination */}
+      <div className="mt-6 flex justify-between">
+        <button
+          onClick={() => setPage(p => Math.max(1, p - 1))}
+          disabled={page === 1}
+          className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
+        >
+          Previous
+        </button>
+        <span>Page {page} of {totalPages || 1}</span>
+        <button
+          onClick={() => setPage(p => p + 1)}
+          disabled={page >= totalPages}
+          className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
+=======
   if (isLoading) return <TableSkeleton columns={5} rows={8} />;
   if (error)
     return (
@@ -73,6 +138,7 @@ export default function EncountersPage() {
         <button
           onClick={() => setShowForm(true)}
           className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+>>>>>>> main
         >
           + New Encounter
         </button>

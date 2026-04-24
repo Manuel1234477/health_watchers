@@ -26,11 +26,30 @@ async function validateDiagnosisCodes(diagnoses?: { code: string }[]): Promise<s
 const router = Router();
 router.use(authenticate);
 
+<<<<<<< fix/198-encounters-list-endpoint
+// GET /encounters
+=======
 // GET /encounters — paginated list scoped to the authenticated clinic
+>>>>>>> main
 router.get(
   '/',
   validateRequest({ query: listEncountersQuerySchema }),
   asyncHandler(async (req: Request, res: Response) => {
+<<<<<<< fix/198-encounters-list-endpoint
+    const { page, limit, patientId, status } = req.query as unknown as ListEncountersQuery;
+    const filter: Record<string, unknown> = { clinicId: req.user!.clinicId, isActive: true };
+    if (patientId) filter.patientId = patientId;
+    if (status) filter.status = status;
+
+    const skip = (page - 1) * limit;
+    const [docs, total] = await Promise.all([
+      EncounterModel.find(filter)
+        .populate('patientId', 'firstName lastName systemId')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+=======
     const { patientId, doctorId, status, date, page, limit } =
       req.query as unknown as ListEncountersQuery;
 
@@ -51,6 +70,7 @@ router.get(
     const skip = (page - 1) * limit;
     const [docs, total] = await Promise.all([
       EncounterModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+>>>>>>> main
       EncounterModel.countDocuments(filter),
     ]);
 

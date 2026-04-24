@@ -4,6 +4,7 @@ import { Diagnosis, Prescription, VitalSigns } from './encounter.model';
 export interface EncounterResponse {
   id: string;
   patientId: string;
+  patient?: { firstName: string; lastName: string; systemId: string };
   clinicId: string;
   attendingDoctorId: string;
   chiefComplaint: string;
@@ -21,9 +22,17 @@ export interface EncounterResponse {
 }
 
 export function toEncounterResponse(doc: Document & Record<string, any>): EncounterResponse {
+  const patient = doc.patientId;
+  const patientId = patient && typeof patient === 'object' && '_id' in patient
+    ? String(patient._id)
+    : String(patient);
+
   return {
     id:                String(doc._id),
-    patientId:         String(doc.patientId),
+    patientId,
+    patient:           patient && typeof patient === 'object' && 'firstName' in patient
+      ? { firstName: patient.firstName, lastName: patient.lastName, systemId: patient.systemId }
+      : undefined,
     clinicId:          String(doc.clinicId),
     attendingDoctorId: String(doc.attendingDoctorId),
     chiefComplaint:    doc.chiefComplaint,
