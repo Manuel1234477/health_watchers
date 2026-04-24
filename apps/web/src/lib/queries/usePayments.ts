@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
+import { fetchWithAuth } from '@/lib/auth';
 import { API_V1 } from '@/lib/api';
 
 export interface Payment {
@@ -19,6 +20,11 @@ export function usePayments(refetchInterval?: number | false) {
   return useQuery<Payment[]>({
     queryKey: queryKeys.payments.list(),
     queryFn: async () => {
+      const res = await fetchWithAuth(`${API_V1}/payments`);
+      if (!res.ok) {
+        throw new Error(`Request failed (${res.status})`);
+      }
+
       const res = await fetch(`${API_V1}/payments`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();

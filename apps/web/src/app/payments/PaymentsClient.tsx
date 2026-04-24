@@ -16,6 +16,7 @@ import {
 } from "@/components/forms/PaymentIntentForm";
 import { Button } from "@/components/ui/Button";
 import { queryKeys } from "@/lib/queryKeys";
+import { fetchWithAuth } from "@/lib/auth";
 import { API_URL } from "@/lib/api";
 
 const API = `${API_URL}/api/v1`;
@@ -77,7 +78,7 @@ export default function PaymentsClient() {
   }, [polledPayments]);
 
   const handleCreate = async (data: PaymentIntentData) => {
-    const res = await fetch(`${API}/payments/intent`, {
+    const res = await fetchWithAuth(`${API}/payments/intent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -91,6 +92,9 @@ export default function PaymentsClient() {
     queryClient.invalidateQueries({ queryKey: queryKeys.payments.list() });
   };
 
+  const handleConfirm = async (paymentId: string, txHash: string) => {
+    const res = await fetchWithAuth(`${API}/payments/${paymentId}/confirm`, {
+      method: 'POST',
   const handleConfirm = async (intentId: string, txHash: string) => {
     const res = await fetch(`${API}/payments/${intentId}/confirm`, {
       method: 'PATCH',
