@@ -186,6 +186,8 @@ encounterSchema.index({ clinicId: 1, patientId: 1, status: 1 }); // Filter by st
 encounterSchema.index({ encounteredBy: 1, createdAt: -1 });      // Doctor's encounters
 // Compound index for search/filter performance (issue #394)
 encounterSchema.index({ clinicId: 1, createdAt: -1, status: 1 });
+encounterSchema.index({ clinicId: 1, status: 1, createdAt: -1 });             // Status-first filter + date sort
+encounterSchema.index({ clinicId: 1, attendingDoctorId: 1, createdAt: -1 }); // Doctor-scoped queries
 // Targeted text index on searchable fields (replaces wildcard $** index)
 encounterSchema.index({ chiefComplaint: 'text', notes: 'text' }, { name: 'encounter_text_search' });
 
