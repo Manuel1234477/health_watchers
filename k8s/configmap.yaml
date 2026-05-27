@@ -28,5 +28,7 @@ data:
   NEXT_PUBLIC_STELLAR_NETWORK: "mainnet"
   # CORS — update to your actual domain(s)
   ALLOWED_ORIGINS: "https://app.healthwatchers.example.com"
+  # Socket.IO CORS — must match the web frontend origin(s)
+  WEB_URL: "https://app.healthwatchers.example.com"
   # Redis URL (if using Redis for caching/rate-limiting)
   REDIS_URL: "redis://redis:6379"

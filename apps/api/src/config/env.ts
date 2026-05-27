@@ -27,6 +27,8 @@ const envSchema = z.object({
   GEMINI_API_KEY: z.string().optional(),
 
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+
+  WEB_URL: z.string().min(1, 'WEB_URL must not be empty').default('http://localhost:3000'),
 });
 
 const result = envSchema.safeParse(process.env);

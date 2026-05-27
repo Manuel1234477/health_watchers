@@ -50,6 +50,8 @@ api:
     JWT_ISSUER: "health-watchers-api"
     JWT_AUDIENCE: "health-watchers-client"
     OTEL_SAMPLING_RATE: "0.1"
+    # Socket.IO CORS — update to your actual web frontend URL(s)
+    WEB_URL: "https://app.healthwatchers.example.com"
 
 # ── Web Frontend ──────────────────────────────────────────────────────────────
 web:

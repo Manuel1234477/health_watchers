@@ -1,6 +1,7 @@
 import { Server as HttpServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { verifyAccessToken, TokenPayload } from '../modules/auth/token.service';
+import { config } from '@health-watchers/config';
 
 let io: SocketIOServer | null = null;
 
@@ -9,9 +10,17 @@ interface AuthenticatedSocket extends Socket {
 }
 
 export function initSocket(httpServer: HttpServer): SocketIOServer {
+  const allowedOrigins = config.webUrl
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+
   io = new SocketIOServer(httpServer, {
     cors: {
-      origin: process.env.WEB_URL || 'http://localhost:3000',
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+        return callback(new Error(`Socket.IO CORS: origin '${origin}' not allowed`));
+      },
       credentials: true,
     },
   });

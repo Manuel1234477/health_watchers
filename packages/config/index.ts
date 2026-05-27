@@ -78,6 +78,9 @@ export const config = {
     sendgridApiKey: process.env.SENDGRID_API_KEY || '',
   },
 
+  // Web frontend URL (used for Socket.IO CORS)
+  webUrl: process.env.WEB_URL || 'http://localhost:3000',
+
   // Redis (used by BullMQ)
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
 
