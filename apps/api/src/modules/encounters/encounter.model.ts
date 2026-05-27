@@ -208,4 +208,27 @@ encounterSchema.pre('save', function () {
   }
 });
 
+encounterSchema.pre('findOneAndUpdate', function () {
+  const update = this.getUpdate() as any;
+  if (!update) return;
+
+  for (const field of FREE_TEXT_FIELDS) {
+    if (update[field]) update[field] = sanitizeText(update[field]);
+    if (update.$set?.[field]) update.$set[field] = sanitizeText(update.$set[field]);
+  }
+
+  if (update.soapNotes) {
+    for (const field of SOAP_FIELDS) {
+      const val = update.soapNotes[field];
+      if (val) update.soapNotes[field] = sanitizeHtml(val);
+    }
+  }
+  if (update.$set?.soapNotes) {
+    for (const field of SOAP_FIELDS) {
+      const val = update.$set.soapNotes[field];
+      if (val) update.$set.soapNotes[field] = sanitizeHtml(val);
+    }
+  }
+});
+
 export const EncounterModel = models.Encounter || model<Encounter>('Encounter', encounterSchema);

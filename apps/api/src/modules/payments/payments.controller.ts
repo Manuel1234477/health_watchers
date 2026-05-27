@@ -242,9 +242,25 @@ router.post(
       path,
       feeStrategy = 'standard',
       sponsorFee = false,
+      idempotencyKey,
     } = req.body;
     const intentId = randomUUID();
     const clinicId = req.user!.clinicId;
+
+    if (idempotencyKey) {
+      const existing = await PaymentRecordModel.findOne({
+        idempotencyKey,
+        clinicId,
+      }).lean();
+
+      if (existing) {
+        return res.json({
+          status: 'success',
+          data: toPaymentResponse(existing),
+          idempotent: true,
+        });
+      }
+    }
     // `currency` takes precedence over `assetCode` for convenience
     const normalizedAsset = (currency ?? String(assetCode)).toUpperCase().trim();
 
@@ -302,6 +318,7 @@ router.post(
           maxSourceAmount,
           path,
           feeStrategy,
+          idempotencyKey: idempotencyKey ?? undefined,
         })
     );
 

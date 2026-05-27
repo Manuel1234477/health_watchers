@@ -21,6 +21,7 @@ export const createPaymentIntentSchema = z.object({
   feeStrategy: z.enum(['slow', 'standard', 'fast']).optional().default('standard'),
   /** If true, platform wraps the inner tx in a fee bump and pays the fee */
   sponsorFee: z.boolean().optional().default(false),
+  idempotencyKey: z.string().min(1).max(256).optional(),
 });
 
 export const confirmPaymentSchema = z.object({
