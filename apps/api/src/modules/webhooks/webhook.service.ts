@@ -20,7 +20,22 @@ export function verifyWebhookSignature(
   return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
 }
 
-export async function deliverWebhook(
+export async function enqueueWebhookDelivery(
+  webhookId: string,
+  event: string,
+  url: string,
+  secret: string,
+  payload: Record<string, any>
+): Promise<void> {
+  // Enqueue delivery as background job (non-blocking)
+  setImmediate(() => {
+    deliverWebhookWithRetry(webhookId, event, url, secret, payload).catch((error) => {
+      logger.error({ webhookId, event, url, error }, 'Unhandled error in webhook delivery');
+    });
+  });
+}
+
+async function deliverWebhookWithRetry(
   webhookId: string,
   event: string,
   url: string,
@@ -74,6 +89,8 @@ export async function deliverWebhook(
       delivery.error = error instanceof Error ? error.message : 'Unknown error';
 
       if (attempt < maxAttempts - 1) {
+        // Apply backoff delay before retry
+        await new Promise((resolve) => setTimeout(resolve, backoffMs[attempt]));
         delivery.nextRetryAt = new Date(Date.now() + backoffMs[attempt]);
         delivery.status = 'pending';
       } else {
@@ -96,3 +113,6 @@ export async function deliverWebhook(
     }
   }
 }
+
+// Legacy export for backward compatibility
+export const deliverWebhook = enqueueWebhookDelivery;
