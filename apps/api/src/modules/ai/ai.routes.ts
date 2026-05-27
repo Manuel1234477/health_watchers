@@ -9,6 +9,7 @@ import {
   AI_DISCLAIMER,
   calculateDosage,
   suggestClinicalCodes,
+  checkDrugInteractions,
 } from './ai.service';
 import { authenticate, requireRoles } from '../../middlewares/auth.middleware';
 import { validateRequest } from '../../middlewares/validate.middleware';
@@ -19,6 +20,8 @@ import {
   DifferentialDiagnosisRequestDto,
   dosageCalculatorRequestSchema,
   DosageCalculatorRequestDto,
+  drugInteractionRequestSchema,
+  DrugInteractionRequestDto,
   triageAssessmentSchema,
 } from './ai.validation';
 import { assessTriage, addToTriageQueue, getTriageQueue, updateTriageStatus } from './triage.service';
@@ -230,18 +233,40 @@ router.post('/insights', authenticate, async (req: Request, res: Response) => {
 });
 
 // POST /api/v1/ai/drug-interactions
-// Stub endpoint for future drug interaction checking
 // Request body: { medications: string[] }
-// Returns: 501 Not Implemented
-router.post('/drug-interactions', authenticate, async (req: Request, res: Response) => {
-  logger.info({ medications: req.body.medications }, 'Drug interaction check requested (not implemented)');
-  
-  return res.status(501).json({
-    error: 'NotImplemented',
-    message: 'Drug interaction checking is not yet implemented. This feature will be available in a future release.',
-    requestedMedications: req.body.medications || [],
-  });
-});
+// Returns: DrugInteractionResult (always — safe fallback on failure)
+router.post(
+  '/drug-interactions',
+  authenticate,
+  requireRoles('DOCTOR', 'CLINIC_ADMIN', 'SUPER_ADMIN', 'NURSE'),
+  validateRequest({ body: drugInteractionRequestSchema }),
+  async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      if (!isAIServiceAvailable()) {
+        return res.status(503).json({
+          error: 'AIUnavailable',
+          message: 'AI service is not configured. Please contact your administrator.',
+        });
+      }
+
+      const { medications } = req.body as DrugInteractionRequestDto;
+      const result = await checkDrugInteractions(medications);
+
+      const duration = Date.now() - startTime;
+      logger.info({ medicationCount: medications.length, severity: result.severity, duration }, 'Drug interaction check completed');
+
+      return res.json({ success: true, ...result });
+    } catch (error: unknown) {
+      const duration = Date.now() - startTime;
+      logger.error({ err: error, duration }, 'Drug interaction check error');
+      return res.status(500).json({
+        error: 'InternalServerError',
+        message: 'An unexpected error occurred while checking drug interactions.',
+      });
+    }
+  }
+);
 
 // POST /api/v1/ai/health-trends
 // Request body: { patientId: string }

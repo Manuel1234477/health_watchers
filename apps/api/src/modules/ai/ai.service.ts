@@ -326,6 +326,125 @@ Rules:
   }
 }
 
+// ── Drug Interactions ─────────────────────────────────────────────────────────
+
+export interface DrugInteraction {
+  drug1: string;
+  drug2: string;
+  severity: 'none' | 'minor' | 'moderate' | 'major' | 'contraindicated';
+  description: string;
+  recommendation: string;
+}
+
+export interface DrugInteractionResult {
+  interactions: DrugInteraction[];
+  severity: 'none' | 'minor' | 'moderate' | 'major' | 'contraindicated';
+  summary: string;
+  disclaimer: string;
+}
+
+export const DRUG_INTERACTION_FALLBACK: DrugInteractionResult = {
+  interactions: [],
+  severity: 'none',
+  summary: 'Drug interaction analysis could not be completed. Please consult a clinical pharmacist.',
+  disclaimer:
+    'AI drug interaction check is unavailable. This result should NOT be used for clinical decisions. Consult a pharmacist or clinical decision support tool.',
+};
+
+export function extractJSON(text: string): string {
+  // Strip markdown code fences: ```json ... ``` or ``` ... ```
+  const fenceMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+  if (fenceMatch) return fenceMatch[1].trim();
+
+  // Find first { ... } block in case of extra explanation text
+  const braceStart = text.indexOf('{');
+  const braceEnd = text.lastIndexOf('}');
+  if (braceStart !== -1 && braceEnd > braceStart) {
+    return text.slice(braceStart, braceEnd + 1).trim();
+  }
+
+  return text.trim();
+}
+
+const drugInteractionSchema = z.object({
+  drug1: z.string().trim().min(1),
+  drug2: z.string().trim().min(1),
+  severity: z.enum(['none', 'minor', 'moderate', 'major', 'contraindicated']),
+  description: z.string().trim().min(1),
+  recommendation: z.string().trim().min(1),
+});
+
+const drugInteractionResultSchema = z.object({
+  interactions: z.array(drugInteractionSchema),
+  severity: z.enum(['none', 'minor', 'moderate', 'major', 'contraindicated']),
+  summary: z.string().trim().min(1),
+});
+
+function buildDrugInteractionPrompt(medications: string[], strict: boolean): string {
+  const strictNote = strict
+    ? '\nCRITICAL: Return ONLY the raw JSON object. No markdown, no code fences, no text before or after the JSON.'
+    : '';
+  return `You are a clinical pharmacology AI. Analyze drug interactions for the following medications: ${medications.join(', ')}.
+
+Return ONLY valid JSON (no markdown, no explanation) matching this exact schema:
+{
+  "interactions": [
+    {
+      "drug1": "string",
+      "drug2": "string",
+      "severity": "none" | "minor" | "moderate" | "major" | "contraindicated",
+      "description": "string",
+      "recommendation": "string"
+    }
+  ],
+  "severity": "none" | "minor" | "moderate" | "major" | "contraindicated",
+  "summary": "string"
+}
+
+Rules:
+1. List every pairwise interaction between the provided medications.
+2. "severity" at the top level is the highest severity found across all interactions.
+3. If no interactions exist, return an empty interactions array with severity "none".
+4. Base recommendations on established clinical guidelines.${strictNote}`;
+}
+
+export async function checkDrugInteractions(medications: string[]): Promise<DrugInteractionResult> {
+  const client = getGeminiClient();
+
+  const model = client.getGenerativeModel({
+    model: 'gemini-1.5-flash',
+    generationConfig: { responseMimeType: 'application/json' },
+  });
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const prompt = buildDrugInteractionPrompt(medications, attempt > 0);
+    let rawText = '';
+    try {
+      const result = await model.generateContent(prompt);
+      rawText = result.response.text().trim();
+
+      // Log raw output at debug level only — never expose to client
+      const { default: logger } = await import('../../utils/logger');
+      logger.debug({ attempt, rawText }, '[ai] drug interaction raw LLM response');
+
+      const jsonStr = extractJSON(rawText);
+      const parsed = JSON.parse(jsonStr);
+      const validated = drugInteractionResultSchema.parse(parsed);
+
+      return {
+        ...validated,
+        disclaimer: AI_DISCLAIMER,
+      };
+    } catch (err) {
+      const { default: logger } = await import('../../utils/logger');
+      logger.debug({ attempt, err: err instanceof Error ? err.message : err }, '[ai] drug interaction parse failed');
+      if (attempt === 1) break;
+    }
+  }
+
+  return DRUG_INTERACTION_FALLBACK;
+}
+
 // ── Clinical Coding (ICD-10 & CPT) ────────────────────────────────────────────
 
 export interface CodeSuggestion {
