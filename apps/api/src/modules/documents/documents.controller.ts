@@ -4,6 +4,7 @@ import { Router, Request, Response } from 'express';
 import multer, { FileFilterCallback } from 'multer';
 import { authenticate } from '@api/middlewares/auth.middleware';
 import { DocumentModel } from './models/document.model';
+import { DocumentVersionModel } from './models/document-version.model';
 import { uploadFile, getDownloadUrl } from './storage.service';
 import { config } from '@health-watchers/config';
 
@@ -95,8 +96,8 @@ router.post(
         return res.status(400).json({ error: 'BadRequest', message: 'No file provided.' });
       }
 
-      const { patientId, clinicId, documentType } = req.body as {
-        patientId: string; clinicId: string; documentType: string;
+      const { patientId, clinicId, documentType, documentId } = req.body as {
+        patientId: string; clinicId: string; documentType: string; documentId?: string;
       };
 
       if (!patientId || !clinicId || !documentType) {
@@ -113,16 +114,82 @@ router.post(
         mimeType: req.file.mimetype,
       });
 
-      const doc = await DocumentModel.create({
-        patientId,
-        clinicId,
-        uploadedBy:   req.user!.userId,
-        fileName:     req.file.originalname,
-        mimeType:     req.file.mimetype,
-        sizeBytes:    req.file.size,
-        storageKey,
-        documentType,
-      });
+      let doc;
+      let version = 1;
+
+      if (documentId) {
+        // Update existing document (new version)
+        const existing = await DocumentModel.findById(documentId);
+        if (!existing) {
+          return res.status(404).json({ error: 'NotFound', message: 'Document not found.' });
+        }
+
+        version = (existing.currentVersion || 1) + 1;
+
+        // Mark old version as replaced
+        await DocumentVersionModel.updateMany(
+          { documentId, isCurrentVersion: true },
+          { isCurrentVersion: false, replacedAt: new Date(), replacedBy: undefined }
+        );
+
+        // Create version record for old version
+        await DocumentVersionModel.create({
+          documentId,
+          patientId: existing.patientId,
+          clinicId: existing.clinicId,
+          uploadedBy: existing.uploadedBy,
+          fileName: existing.fileName,
+          mimeType: existing.mimeType,
+          sizeBytes: existing.sizeBytes,
+          storageKey: existing.storageKey,
+          documentType: existing.documentType,
+          version: existing.currentVersion || 1,
+          isCurrentVersion: false,
+        });
+
+        // Update document with new version
+        doc = await DocumentModel.findByIdAndUpdate(
+          documentId,
+          {
+            fileName: req.file.originalname,
+            mimeType: req.file.mimetype,
+            sizeBytes: req.file.size,
+            storageKey,
+            currentVersion: version,
+            $inc: { versionCount: 1 },
+          },
+          { new: true }
+        );
+      } else {
+        // Create new document
+        doc = await DocumentModel.create({
+          patientId,
+          clinicId,
+          uploadedBy: req.user!.userId,
+          fileName: req.file.originalname,
+          mimeType: req.file.mimetype,
+          sizeBytes: req.file.size,
+          storageKey,
+          documentType,
+          currentVersion: 1,
+          versionCount: 1,
+        });
+
+        // Create version record
+        await DocumentVersionModel.create({
+          documentId: doc._id,
+          patientId,
+          clinicId,
+          uploadedBy: req.user!.userId,
+          fileName: req.file.originalname,
+          mimeType: req.file.mimetype,
+          sizeBytes: req.file.size,
+          storageKey,
+          documentType,
+          version: 1,
+          isCurrentVersion: true,
+        });
+      }
 
       return res.status(201).json({ status: 'success', data: doc });
     } catch (err: any) {
@@ -146,6 +213,10 @@ router.post(
  *         name: id
  *         required: true
  *         schema: { type: string }
+ *       - in: query
+ *         name: version
+ *         schema: { type: number }
+ *         description: Specific version to download (defaults to current)
  *     responses:
  *       200:
  *         description: Pre-signed URL returned
@@ -154,11 +225,70 @@ router.post(
  */
 router.get('/:id/download', authenticate, async (req: Request, res: Response) => {
   try {
+    const { version } = req.query;
     const doc = await DocumentModel.findById(req.params.id);
     if (!doc) return res.status(404).json({ error: 'NotFound', message: 'Document not found.' });
 
-    const url = await getDownloadUrl(doc.storageKey);
+    let storageKey = doc.storageKey;
+
+    if (version) {
+      const versionNum = parseInt(version as string, 10);
+      const versionRecord = await DocumentVersionModel.findOne({
+        documentId: req.params.id,
+        version: versionNum,
+      });
+      if (!versionRecord) {
+        return res.status(404).json({ error: 'NotFound', message: `Version ${versionNum} not found.` });
+      }
+      storageKey = versionRecord.storageKey;
+    }
+
+    const url = await getDownloadUrl(storageKey);
     return res.json({ status: 'success', data: { url, expiresInSeconds: 15 * 60 } });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'InternalError', message: err.message });
+  }
+});
+
+// ── GET /documents/:id/versions ──────────────────────────────────────────────
+
+/**
+ * @swagger
+ * /documents/{id}/versions:
+ *   get:
+ *     summary: Get version history for a document
+ *     tags: [Documents]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Version history returned
+ *       404:
+ *         description: Document not found
+ */
+router.get('/:id/versions', authenticate, async (req: Request, res: Response) => {
+  try {
+    const doc = await DocumentModel.findById(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'NotFound', message: 'Document not found.' });
+
+    const versions = await DocumentVersionModel.find({ documentId: req.params.id })
+      .sort({ version: -1 })
+      .select('-storageKey')
+      .lean();
+
+    return res.json({
+      status: 'success',
+      data: {
+        document: doc,
+        versions,
+        totalVersions: versions.length,
+      },
+    });
   } catch (err: any) {
     return res.status(500).json({ error: 'InternalError', message: err.message });
   }

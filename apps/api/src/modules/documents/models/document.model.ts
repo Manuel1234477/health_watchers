@@ -11,6 +11,8 @@ export interface PatientDocument {
   sizeBytes:    number;
   storageKey:   string;   // S3 key or local relative path
   documentType: DocumentType;
+  currentVersion: number;
+  versionCount: number;
 }
 
 const documentSchema = new Schema<PatientDocument>(
@@ -27,6 +29,8 @@ const documentSchema = new Schema<PatientDocument>(
       enum: ['lab_result', 'referral_letter', 'consent_form', 'medical_image', 'other'],
       required: true,
     },
+    currentVersion: { type: Number, default: 1 },
+    versionCount: { type: Number, default: 1 },
   },
   { timestamps: true, versionKey: false }
 );
