@@ -9,6 +9,7 @@ import {
   sendPatientPdf,
   buildClinicRecord,
   sendClinicZip,
+  sendResearchExport,
 } from './export.service';
 import { buildFhirBundle } from './fhir-mapper';
 
@@ -119,6 +120,58 @@ router.get(
       return sendClinicZip(res, id, record);
     } catch (err: any) {
       logger.error({ err }, 'Clinic export error');
+      return res.status(500).json({ error: 'InternalError', message: 'Export failed' });
+    }
+  }
+);
+
+/**
+ * @swagger
+ * /research/export:
+ *   get:
+ *     summary: Export anonymized patient data for research (SUPER_ADMIN only, requires IRB approval)
+ *     tags: [Export]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: irbApproved
+ *         required: true
+ *         schema:
+ *           type: boolean
+ *         description: IRB approval flag
+ */
+router.get(
+  '/research/export',
+  authenticate,
+  requireRoles('SUPER_ADMIN'),
+  async (req: Request, res: Response) => {
+    const irbApproved = req.query.irbApproved === 'true';
+
+    if (!irbApproved) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'IRB approval is required for research exports',
+      });
+    }
+
+    try {
+      const { userId, clinicId } = req.user!;
+
+      auditLog(
+        {
+          action: 'EXPORT_RESEARCH_DATA',
+          resourceType: 'ResearchExport',
+          resourceId: 'all',
+          userId,
+          clinicId,
+        },
+        req
+      ).catch((err) => logger.error({ err }, 'Audit log failed for research export'));
+
+      return sendResearchExport(res);
+    } catch (err: any) {
+      logger.error({ err }, 'Research export error');
       return res.status(500).json({ error: 'InternalError', message: 'Export failed' });
     }
   }

@@ -97,6 +97,7 @@ import { preAuthRoutes } from './modules/pre-auth/pre-auth.controller';
 import federationRouter from './modules/federation/federation.router';
 import exportRouter from './modules/export/export.routes';
 import { complianceRoutes } from './modules/compliance/compliance.controller';
+import { requestIdPropagationMiddleware } from './middlewares/request-id-propagation.middleware';
 
 
 const app = express();
@@ -174,6 +175,9 @@ app.use(
     redact: ['req.headers.authorization'],
   })
 );
+
+// ── Request ID propagation ────────────────────────────────────────────────────
+app.use(requestIdPropagationMiddleware);
 
 // ── Body parsing & sanitization ───────────────────────────────────────────────
 app.use(express.json({ limit: standardLimit }));

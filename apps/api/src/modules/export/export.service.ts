@@ -7,6 +7,7 @@ import { PaymentRecordModel } from '@api/modules/payments/models/payment-record.
 import { UserModel } from '@api/modules/auth/models/user.model';
 import { Types } from 'mongoose';
 import logger from '@api/utils/logger';
+import { anonymizeBatch } from '@health-watchers/anonymize';
 
 // ─── Sanitization ──────────────────────────────────────────────────────────
 
@@ -243,4 +244,23 @@ function buildPatientCsv(patients: any[]): string {
       .join(',')
   );
   return [header, ...rows].join('\n');
+}
+
+/** Export anonymized patient data for research (aggregated statistics only) */
+export async function sendResearchExport(res: Response) {
+  const patients = (await PatientModel.find().lean()) as any[];
+
+  const anonymized = anonymizeBatch(patients, {
+    level: 'aggregation',
+    purpose: 'research',
+  });
+
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', 'attachment; filename="research-export.json"');
+  res.json({
+    status: 'success',
+    exportedAt: new Date().toISOString(),
+    anonymizationLevel: 'aggregation',
+    data: anonymized,
+  });
 }
