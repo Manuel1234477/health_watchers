@@ -20,6 +20,8 @@ export interface IAppointment extends Document {
   videoStartedAt?: Date;
   videoEndedAt?: Date;
   videoDuration?: number; // minutes
+  reminderSent24h?: boolean;
+  reminderSent1h?: boolean;
 }
 
 const AppointmentSchema = new Schema<IAppointment>(
@@ -55,6 +57,8 @@ const AppointmentSchema = new Schema<IAppointment>(
     videoStartedAt: { type: Date },
     videoEndedAt: { type: Date },
     videoDuration: { type: Number }, // minutes
+    reminderSent24h: { type: Boolean, default: false },
+    reminderSent1h: { type: Boolean, default: false },
   },
   { timestamps: true, versionKey: false }
 );
