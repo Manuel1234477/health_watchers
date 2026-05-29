@@ -17,6 +17,7 @@ import {
 import { Types } from 'mongoose';
 import { ICD10Model } from '../icd10/icd10.model';
 import { PatientModel } from '../patients/models/patient.model';
+import { UserModel } from '../auth/models/user.model';
 import { auditLog } from '../audit/audit.service';
 import crypto from 'crypto';
 import { emitToClinic } from '@api/realtime/socket';
@@ -24,6 +25,8 @@ import { encountersCreatedTotal } from '../../services/metrics.service';
 import cdsRulesEngine from '../cds/cds-rules-engine.js';
 import { EncounterValidationService } from './encounter-validation.service';
 import { incrementUsage } from '../subscriptions/usage.service';
+import { sendMail } from '@api/lib/email.service';
+import { generatePatientFriendlySummary, isAIServiceAvailable } from '../ai/ai.service';
 
 async function validateDiagnosisCodes(diagnoses?: { code: string }[]): Promise<string | null> {
   if (!diagnoses || diagnoses.length === 0) return null;
@@ -32,6 +35,49 @@ async function validateDiagnosisCodes(diagnoses?: { code: string }[]): Promise<s
     if (!exists) return d.code;
   }
   return null;
+}
+
+async function sendEncounterSummaryEmail(encounter: any): Promise<void> {
+  const patientUser = await UserModel.findOne({ patientId: encounter.patientId, role: 'PATIENT', isActive: true }).lean();
+  if (!patientUser?.email || (patientUser as any).preferences?.emailNotifications === false) return;
+
+  let summary = encounter.patientFriendlySummary as string | undefined;
+  if (!summary && isAIServiceAvailable()) {
+    try {
+      summary = await generatePatientFriendlySummary({
+        chiefComplaint: encounter.chiefComplaint,
+        soapNotes: encounter.soapNotes,
+        diagnosis: encounter.diagnosis,
+        prescriptions: encounter.prescriptions,
+      });
+      await EncounterModel.updateOne({ _id: encounter._id }, { $set: { patientFriendlySummary: summary } });
+    } catch {
+      // Fall back to chief complaint only
+    }
+  }
+
+  const diagnosisText = encounter.diagnosis?.length
+    ? `<p><strong>Diagnosis:</strong> ${encounter.diagnosis.map((d: any) => d.description).join(', ')}</p>`
+    : '';
+  const followUpText = encounter.followUpDate
+    ? `<p><strong>Follow-up:</strong> ${new Date(encounter.followUpDate).toLocaleDateString()}</p>`
+    : '';
+  const summaryText = summary
+    ? `<p>${summary}</p>`
+    : `<p>Your visit regarding <em>${encounter.chiefComplaint}</em> has been completed.</p>`;
+
+  await sendMail(
+    patientUser.email,
+    'Your visit summary is ready',
+    'Your visit summary is ready. Please log in to the patient portal to view details.',
+    `<p>Hi,</p>
+    <p>Your recent visit has been completed. Here is a summary:</p>
+    ${summaryText}
+    ${diagnosisText}
+    ${followUpText}
+    <p>Log in to the <a href="${process.env.APP_BASE_URL || 'http://localhost:3000'}/portal/encounters">patient portal</a> to view your full encounter history and add any notes or questions.</p>
+    <p style="color:#888;font-size:12px;">This is an AI-assisted summary for informational purposes only. Always consult your healthcare provider for medical advice.</p>`
+  );
 }
 
 async function triggerSurveyAfterEncounter(encounterId: string, encounter: any): Promise<void> {
@@ -419,6 +465,8 @@ router.patch(
     // Trigger survey if encounter is being closed
     if (updateData.status === 'closed' && encounter.status !== 'closed') {
       await triggerSurveyAfterEncounter(req.params.id, doc!);
+      // Send patient-friendly summary email notification
+      sendEncounterSummaryEmail(doc!).catch(() => undefined);
     }
 
     return res.json({ status: 'success', data: toEncounterResponse(doc!) });

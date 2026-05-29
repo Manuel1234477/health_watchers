@@ -88,6 +88,7 @@ const options: swaggerJsdoc.Options = {
     path.join(__dirname, '../modules/payments/dispute.controller.ts'),
     path.join(__dirname, '../modules/payments/payments.export.controller.ts'),
     path.join(__dirname, '../modules/export/export.routes.ts'),
+    path.join(__dirname, '../modules/portal/portal.controller.ts'),
   ],
 };
 

@@ -257,6 +257,32 @@ export function sendInvoiceEmail(
   enqueue(to, subject, text, html);
 }
 
+/** Encounter summary email sent to patient when a patient-friendly summary is generated */
+export function sendEncounterSummaryEmail(
+  to: string,
+  patientName: string,
+  encounter: { chiefComplaint: string; summary: string; encounterId: string; date: Date },
+  language?: string
+): void {
+  const encounterUrl = `${APP_BASE_URL()}/portal/encounters`;
+  const isFrench = resolveLanguage(language) === 'fr';
+  const dateStr = encounter.date.toLocaleDateString(isFrench ? 'fr-FR' : 'en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  const subject = isFrench
+    ? 'Résumé de votre consultation — Health Watchers'
+    : 'Your Visit Summary — Health Watchers';
+  const text = isFrench
+    ? `Bonjour ${patientName},\n\nVoici le résumé de votre consultation du ${dateStr} :\n\n${encounter.chiefComplaint}\n\n${encounter.summary}\n\nConsultez votre historique complet : ${encounterUrl}`
+    : `Hi ${patientName},\n\nHere is a summary of your visit on ${dateStr}:\n\n${encounter.chiefComplaint}\n\n${encounter.summary}\n\nView your full encounter history: ${encounterUrl}`;
+  const html = isFrench
+    ? `<h3>Résumé de votre consultation</h3><p>Bonjour <strong>${patientName}</strong>,</p><p>Voici le résumé de votre consultation du <strong>${dateStr}</strong> :</p><blockquote style="border-left:3px solid #3b82f6;padding-left:12px;color:#374151">${encounter.summary}</blockquote><p style="font-size:12px;color:#9ca3af">Ce résumé est généré par IA à titre informatif uniquement.</p><p><a href="${encounterUrl}">Voir mon historique de consultations</a></p>`
+    : `<h3>Your Visit Summary</h3><p>Hi <strong>${patientName}</strong>,</p><p>Here is a summary of your visit on <strong>${dateStr}</strong>:</p><blockquote style="border-left:3px solid #3b82f6;padding-left:12px;color:#374151">${encounter.summary}</blockquote><p style="font-size:12px;color:#9ca3af">This summary is AI-generated for informational purposes only.</p><p><a href="${encounterUrl}">View My Encounter History</a></p>`;
+  enqueue(to, subject, text, html);
+}
+
 /** Referral notification sent to receiving clinic admin */
 export function sendReferralNotificationEmail(
   to: string,

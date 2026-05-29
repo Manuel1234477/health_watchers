@@ -83,6 +83,8 @@ export interface Encounter {
   prescriptions?: Prescription[];
   followUpDate?: Date;
   aiSummary?: string;
+  patientFriendlySummary?: string;
+  patientNotes?: Array<{ note: string; createdAt: Date }>;
   isActive?: boolean;
   billing?: BillingInfo;
   attachments?: Attachment[];
@@ -199,6 +201,11 @@ const encounterSchema = new Schema<Encounter>(
     prescriptions:     { type: [prescriptionSchema], default: undefined },
     followUpDate:      { type: Date },
     aiSummary:         { type: String },
+    patientFriendlySummary: { type: String },
+    patientNotes:      {
+      type: [new Schema({ note: { type: String, required: true }, createdAt: { type: Date, default: Date.now } }, { _id: true })],
+      default: [],
+    },
     isActive:          { type: Boolean, default: true, index: true },
     billing:           { type: billingInfoSchema },
     attachments:       { type: [attachmentSchema], default: [] },

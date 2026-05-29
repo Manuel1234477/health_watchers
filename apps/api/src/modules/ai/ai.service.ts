@@ -92,6 +92,46 @@ export interface EncounterSummary {
   createdAt: Date | string;
 }
 
+export interface PatientFriendlySummaryInput {
+  chiefComplaint: string;
+  soapNotes?: {
+    subjective?: string;
+    objective?: string;
+    assessment?: string;
+    plan?: string;
+  };
+  diagnosis?: Array<{ code: string; description: string }>;
+  vitalSigns?: Record<string, unknown>;
+  prescriptions?: Array<{ drugName: string; dosage: string; frequency: string; duration: string }>;
+}
+
+export async function generatePatientFriendlySummary(input: PatientFriendlySummaryInput): Promise<string> {
+  const client = getGeminiClient();
+
+  const parts: string[] = [`Chief Complaint: ${input.chiefComplaint}`];
+  if (input.soapNotes?.assessment) parts.push(`Assessment: ${input.soapNotes.assessment}`);
+  if (input.soapNotes?.plan) parts.push(`Plan: ${input.soapNotes.plan}`);
+  if (input.diagnosis?.length) {
+    parts.push(`Diagnosis: ${input.diagnosis.map((d) => d.description).join(', ')}`);
+  }
+  if (input.prescriptions?.length) {
+    parts.push(`Medications: ${input.prescriptions.map((p) => `${p.drugName} ${p.dosage} ${p.frequency} for ${p.duration}`).join('; ')}`);
+  }
+
+  const safeText = stripPII(parts.join('\n'));
+
+  const prompt = `You are a patient-friendly health assistant. Summarize the following clinical encounter in plain, easy-to-understand language (no medical jargon) in 2-4 sentences. Focus on: what the visit was about, what was found, and what the patient should do next. Do not include any personally identifiable information.\n\n${safeText}`;
+
+  try {
+    const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to generate patient-friendly summary: ${msg}`);
+  }
+}
+
 export async function generatePatientInsights(encounters: EncounterSummary[]): Promise<string> {
   const client = getGeminiClient();
 
