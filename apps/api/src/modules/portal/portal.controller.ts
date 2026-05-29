@@ -17,7 +17,10 @@ import { RefreshTokenModel } from '../auth/models/refresh-token.model';
 import { portalMfaService } from './portal-mfa.service';
 import { smsOtpService } from './sms-otp.service';
 import { PortalMessageModel } from './models/portal-message.model';
-import { portalMessageCreateSchema, portalMessageQuerySchema } from './portal.validation';
+import { portalMessageCreateSchema, portalMessageQuerySchema, portalTimelineQuerySchema, type TimelineEvent } from './portal.validation';
+import { EncounterModel } from '../encounters/encounter.model';
+import { LabResultModel } from '../lab-results/lab-result.model';
+import { ImmunizationModel } from '../immunizations/immunization.model';
 import { emitToClinic, emitToUser } from '@api/realtime/socket';
 import { sendMail } from '@api/lib/email.service';
 import crypto from 'crypto';
@@ -483,6 +486,283 @@ router.delete(
     }
 
     return res.json({ status: 'success', data: entry });
+  }),
+);
+
+/**
+ * @swagger
+ * /portal/timeline:
+ *   get:
+ *     summary: Get patient health record timeline
+ *     description: Returns all health events (encounters, lab results, immunizations, prescriptions, appointments) in chronological order.
+ *     tags: [Portal]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           maximum: 100
+ *       - in: query
+ *         name: eventType
+ *         schema:
+ *           type: string
+ *           enum: [encounter, lab_result, immunization, prescription, appointment]
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *     responses:
+ *       200:
+ *         description: Timeline events
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/TimelineEvent'
+ *                 meta:
+ *                   $ref: '#/components/schemas/PaginationMeta'
+ */
+// ── GET /api/v1/portal/timeline ──────────────────────────────────────────────
+router.get(
+  '/timeline',
+  authenticate,
+  requirePatient,
+  validateRequest({ query: portalTimelineQuerySchema }),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { clinicId, patientId } = req.user!;
+    const pagination = parsePagination(req.query as Record<string, any>);
+    if (!pagination) {
+      return res.status(400).json({ error: 'ValidationError', message: 'limit must not exceed 100' });
+    }
+    const { page, limit } = pagination;
+    const { eventType, startDate, endDate } = req.query as {
+      eventType?: string;
+      startDate?: string;
+      endDate?: string;
+    };
+
+    const patientFilter = {
+      patientId: new Types.ObjectId(patientId),
+      clinicId: new Types.ObjectId(clinicId),
+    };
+
+    const dateFilter: Record<string, unknown> = {};
+    if (startDate || endDate) {
+      const df: Record<string, Date> = {};
+      if (startDate) df.$gte = new Date(startDate);
+      if (endDate) df.$lte = new Date(endDate);
+      dateFilter.createdAt = df;
+    }
+
+    const fetchAll = !eventType;
+
+    const fetchEncounters = fetchAll || eventType === 'encounter';
+    const fetchLabResults = fetchAll || eventType === 'lab_result';
+    const fetchImmunizations = fetchAll || eventType === 'immunization';
+    const fetchAppointments = fetchAll || eventType === 'appointment';
+    const fetchPrescriptions = fetchAll || eventType === 'prescription';
+
+    const queries: Promise<TimelineEvent[]>[] = [];
+
+    if (fetchEncounters) {
+      queries.push(
+        EncounterModel.find({ ...patientFilter, ...dateFilter })
+          .sort({ createdAt: -1 })
+          .lean()
+          .then((encounters) =>
+            encounters.map((e) => ({
+              id: String(e._id),
+              type: 'encounter' as const,
+              date: (e.createdAt as unknown as Date)?.toISOString?.() ?? new Date().toISOString(),
+              title: `${e.type ?? 'Consultation'} — ${e.chiefComplaint || 'Encounter'}`,
+              description: e.soapNotes?.assessment ?? e.notes ?? 'No details',
+              details: {
+                chiefComplaint: e.chiefComplaint,
+                type: e.type,
+                status: e.status,
+                diagnosis: e.diagnosis,
+                vitalSigns: e.vitalSigns,
+                soapNotes: e.soapNotes,
+                treatmentPlan: e.treatmentPlan,
+              },
+              clinicId: String(e.clinicId),
+              createdAt: (e.createdAt as unknown as Date)?.toISOString?.() ?? new Date().toISOString(),
+            })),
+          ),
+      );
+    }
+
+    if (fetchLabResults) {
+      queries.push(
+        LabResultModel.find({ ...patientFilter, ...dateFilter })
+          .sort({ createdAt: -1 })
+          .lean()
+          .then((results) =>
+            results.map((r) => ({
+              id: String(r._id),
+              type: 'lab_result' as const,
+              date: (r.createdAt as unknown as Date)?.toISOString?.() ?? new Date().toISOString(),
+              title: r.testName,
+              description: r.status === 'resulted'
+                ? (r.results ?? []).map((res) => `${res.parameter}: ${res.value} ${res.unit}`).join(', ')
+                : `Status: ${r.status}`,
+              details: {
+                testName: r.testName,
+                testCode: r.testCode,
+                status: r.status,
+                orderedAt: r.orderedAt,
+                resultedAt: r.resultedAt,
+                results: r.results,
+                isCritical: r.isCritical,
+                notes: r.notes,
+              },
+              clinicId: String(r.clinicId),
+              createdAt: (r.createdAt as unknown as Date)?.toISOString?.() ?? new Date().toISOString(),
+            })),
+          ),
+      );
+    }
+
+    if (fetchImmunizations) {
+      queries.push(
+        ImmunizationModel.find({ ...patientFilter, ...dateFilter })
+          .sort({ createdAt: -1 })
+          .lean()
+          .then((immunizations) =>
+            immunizations.map((i) => ({
+              id: String(i._id),
+              type: 'immunization' as const,
+              date: i.administeredDate.toISOString(),
+              title: `${i.vaccineName} (Dose ${i.doseNumber})`,
+              description: `Administered ${i.administeredDate.toLocaleDateString()}${i.manufacturer ? ` — ${i.manufacturer}` : ''}`,
+              details: {
+                vaccineName: i.vaccineName,
+                vaccineCode: i.vaccineCode,
+                manufacturer: i.manufacturer,
+                lotNumber: i.lotNumber,
+                administeredDate: i.administeredDate,
+                doseNumber: i.doseNumber,
+                seriesComplete: i.seriesComplete,
+                route: i.route,
+                site: i.site,
+                notes: i.notes,
+              },
+              clinicId: String(i.clinicId),
+              createdAt: (i.createdAt as unknown as Date)?.toISOString?.() ?? new Date().toISOString(),
+            })),
+          ),
+      );
+    }
+
+    if (fetchAppointments) {
+      queries.push(
+        AppointmentModel.find({ ...patientFilter, ...dateFilter })
+          .sort({ createdAt: -1 })
+          .lean()
+          .then((appointments) =>
+            appointments.map((a) => ({
+              id: String(a._id),
+              type: 'appointment' as const,
+              date: a.scheduledAt.toISOString(),
+              title: `${a.type} — ${a.status}`,
+              description: a.chiefComplaint ?? 'No chief complaint recorded',
+              details: {
+                scheduledAt: a.scheduledAt,
+                duration: a.duration,
+                type: a.type,
+                status: a.status,
+                chiefComplaint: a.chiefComplaint,
+                isTelemedicine: a.isTelemedicine,
+                notes: a.notes,
+              },
+              clinicId: String(a.clinicId),
+              createdAt: (a.createdAt as unknown as Date)?.toISOString?.() ?? new Date().toISOString(),
+            })),
+          ),
+      );
+    }
+
+    if (fetchPrescriptions) {
+      queries.push(
+        EncounterModel.find({ ...patientFilter, ...dateFilter, prescriptions: { $exists: true, $ne: [] } })
+          .sort({ createdAt: -1 })
+          .lean()
+          .then((encounters) => {
+            const events: TimelineEvent[] = [];
+            for (const e of encounters) {
+              if (!e.prescriptions) continue;
+              for (const p of e.prescriptions) {
+                events.push({
+                  id: `${String(e._id)}_rx_${p.drugName.replace(/\s+/g, '_')}`,
+                  type: 'prescription' as const,
+                  date: (p.prescribedAt ?? e.createdAt)?.toISOString?.() ?? new Date().toISOString(),
+                  title: p.drugName,
+                  description: `${p.dosage}, ${p.frequency} — ${p.duration}`,
+                  details: {
+                    drugName: p.drugName,
+                    genericName: p.genericName,
+                    dosage: p.dosage,
+                    frequency: p.frequency,
+                    duration: p.duration,
+                    route: p.route,
+                    instructions: p.instructions,
+                    refillsAllowed: p.refillsAllowed,
+                    encounterId: String(e._id),
+                  },
+                  clinicId: String(e.clinicId),
+                  createdAt: (e.createdAt as unknown as Date)?.toISOString?.() ?? new Date().toISOString(),
+                });
+              }
+            }
+            return events;
+          }),
+      );
+    }
+
+    const allEvents = (await Promise.all(queries)).flat();
+
+    // Sort by date descending (most recent first)
+    allEvents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    const total = allEvents.length;
+    const totalPages = Math.ceil(total / limit);
+    const start = (page - 1) * limit;
+    const paginatedData = allEvents.slice(start, start + limit);
+
+    return res.json({
+      status: 'success',
+      data: paginatedData,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+        nextCursor: null,
+      },
+    });
   }),
 );
 

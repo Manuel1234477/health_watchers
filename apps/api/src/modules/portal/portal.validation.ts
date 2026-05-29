@@ -61,3 +61,26 @@ export const portalMessageQuerySchema = z.object({
 export type PortalMessageQueryDto = z.infer<typeof portalMessageQuerySchema>;
 
 export type PortalMfaDisableDto = z.infer<typeof portalMfaDisableSchema>;
+
+export const portalTimelineQuerySchema = z.object({
+  page: z.string().optional(),
+  limit: z.string().optional(),
+  eventType: z
+    .enum(['encounter', 'lab_result', 'immunization', 'prescription', 'appointment'])
+    .optional(),
+  startDate: z.string().datetime({ offset: true }).optional(),
+  endDate: z.string().datetime({ offset: true }).optional(),
+});
+
+export type PortalTimelineQueryDto = z.infer<typeof portalTimelineQuerySchema>;
+
+export interface TimelineEvent {
+  id: string;
+  type: 'encounter' | 'lab_result' | 'immunization' | 'prescription' | 'appointment';
+  date: string;
+  title: string;
+  description: string;
+  details: Record<string, unknown>;
+  clinicId: string;
+  createdAt: string;
+}

@@ -22,6 +22,31 @@ const options: swaggerJsdoc.Options = {
         },
       },
       schemas: {
+        TimelineEvent: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: '507f1f77bcf86cd799439011' },
+            type: { type: 'string', enum: ['encounter', 'lab_result', 'immunization', 'prescription', 'appointment'] },
+            date: { type: 'string', format: 'date-time' },
+            title: { type: 'string', example: 'Consultation — Headache' },
+            description: { type: 'string', example: 'Patient reports recurring headaches' },
+            details: { type: 'object' },
+            clinicId: { type: 'string' },
+            createdAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        PaginationMeta: {
+          type: 'object',
+          properties: {
+            total: { type: 'integer', example: 42 },
+            page: { type: 'integer', example: 1 },
+            limit: { type: 'integer', example: 20 },
+            totalPages: { type: 'integer', example: 3 },
+            hasNextPage: { type: 'boolean', example: true },
+            hasPrevPage: { type: 'boolean', example: false },
+            nextCursor: { type: 'string', nullable: true, example: null },
+          },
+        },
         Error: {
           type: 'object',
           properties: {
@@ -88,6 +113,7 @@ const options: swaggerJsdoc.Options = {
     path.join(__dirname, '../modules/payments/dispute.controller.ts'),
     path.join(__dirname, '../modules/payments/payments.export.controller.ts'),
     path.join(__dirname, '../modules/export/export.routes.ts'),
+    path.join(__dirname, '../modules/portal/portal.controller.ts'),
   ],
 };
 
