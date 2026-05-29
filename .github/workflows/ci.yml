@@ -103,7 +103,7 @@ jobs:
   test:
     name: Test Suite
     runs-on: ubuntu-latest
-    needs: [quality-checks, security-scan, helm-validate]
+    needs: [quality-checks, security-scan]
 
     strategy:
       matrix:
