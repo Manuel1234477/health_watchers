@@ -33,6 +33,9 @@ describe('generateInvoicePDF', () => {
         taxId: '98-7654321',
         headerText: 'Professional invoice services',
         footerText: 'Thank you for your business',
+        // 1x1 transparent PNG data URL
+        signatureUrl:
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=',
         signatureName: 'Dr. Sarah Lee',
         signatureTitle: 'Clinic Director',
       },
@@ -49,5 +52,8 @@ describe('generateInvoicePDF', () => {
     expect(pdfBuffer.includes(Buffer.from('Tax ID: 98-7654321'))).toBe(true);
     expect(pdfBuffer.includes(Buffer.from('Authorized signature:'))).toBe(true);
     expect(pdfBuffer.includes(Buffer.from('Dr. Sarah Lee'))).toBe(true);
+    // PNG signature bytes should be embedded in the PDF
+    const pngHeader = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    expect(pdfBuffer.includes(pngHeader)).toBe(true);
   });
 });

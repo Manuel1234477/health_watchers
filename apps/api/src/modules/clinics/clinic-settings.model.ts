@@ -91,6 +91,8 @@ const clinicSettingsSchema = new Schema<IClinicSettings>(
       taxId: { type: String, default: '' },
       headerText: { type: String, default: '' },
       footerText: { type: String, default: '' },
+      signatureUrl: { type: String },
+      signatureStorageKey: { type: String },
       signatureName: { type: String, default: '' },
       signatureTitle: { type: String, default: '' },
     },

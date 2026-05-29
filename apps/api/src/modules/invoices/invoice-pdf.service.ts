@@ -15,6 +15,8 @@ interface InvoiceBranding {
   footerText?: string;
   signatureName?: string;
   signatureTitle?: string;
+  signatureUrl?: string;
+  signatureStorageKey?: string;
 }
 
 interface InvoicePDFOptions {
@@ -38,6 +40,16 @@ async function fetchLogoBuffer(branding: InvoiceBranding): Promise<Buffer | null
   }
 
   if (branding.logoUrl) {
+    // data URL (base64 embedded)
+    if (/^data:image\//i.test(branding.logoUrl)) {
+      try {
+        const base = branding.logoUrl.replace(/^data:image\/[^;]+;base64,/, '');
+        return Buffer.from(base, 'base64');
+      } catch {
+        return null;
+      }
+    }
+
     const isAbsoluteUrl = /^https?:\/\//i.test(branding.logoUrl);
     if (isAbsoluteUrl) {
       try {
@@ -182,9 +194,56 @@ export async function generateInvoicePDF(opts: InvoicePDFOptions): Promise<PassT
   }
 
   if (signatureName || signatureTitle) {
+    // Try to render a signature image if provided, otherwise fall back to printed name/title
+    const signatureBuffer = await (async function fetchSignatureBuffer(): Promise<Buffer | null> {
+      if (branding.signatureStorageKey) {
+        try {
+          return await downloadFile(branding.signatureStorageKey);
+        } catch {
+          return null;
+        }
+      }
+      if (branding.signatureUrl) {
+        if (/^data:image\//i.test(branding.signatureUrl)) {
+          try {
+            const base = branding.signatureUrl.replace(/^data:image\/[^;]+;base64,/, '');
+            return Buffer.from(base, 'base64');
+          } catch {
+            return null;
+          }
+        }
+        const isAbsolute = /^https?:\/\//i.test(branding.signatureUrl);
+        if (isAbsolute) {
+          try {
+            const r = await axios.get<ArrayBuffer>(branding.signatureUrl, { responseType: 'arraybuffer', timeout: 5000 });
+            return Buffer.from(r.data);
+          } catch {
+            return null;
+          }
+        }
+        const localMatch = branding.signatureUrl.match(/\/api\/v1\/documents\/_local\/(.+)$/);
+        if (localMatch?.[1]) {
+          try {
+            return await downloadFile(decodeURIComponent(localMatch[1]));
+          } catch {
+            return null;
+          }
+        }
+      }
+      return null;
+    })();
+
     doc.moveDown(1);
     doc.fontSize(10).fillColor('#111').text('Authorized signature:', { underline: true });
     doc.moveDown(0.6);
+    if (signatureBuffer) {
+      try {
+        doc.image(signatureBuffer, { fit: [200, 80] });
+        doc.moveDown(0.6);
+      } catch {
+        // ignore image errors and fall back to text
+      }
+    }
     if (signatureName) {
       doc.font('Helvetica-Bold').text(signatureName);
     }
