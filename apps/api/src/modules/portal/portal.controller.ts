@@ -342,4 +342,8 @@ router.delete(
 import { portalMfaRoutes } from './portal-mfa.routes';
 router.use(portalMfaRoutes);
 
+// ── HIPAA Right of Access data-export routes ───────────────────────────────────
+import { exportRequestRoutes } from '../export/export-request.controller';
+router.use(exportRequestRoutes);
+
 export { router as portalRoutes };

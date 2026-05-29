@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { config } from '@health-watchers/config';
 import { PaymentRecordModel } from './models/payment-record.model';
+import { PaymentDisputeModel } from './models/payment-dispute.model';
 import { authenticate } from '@api/middlewares/auth.middleware';
 import { validateRequest } from '@api/middlewares/validate.middleware';
 import {
@@ -1529,6 +1530,11 @@ router.get(
     }
 
     try {
+      // Surface dispute status on the receipt so patients/clinics see it at a glance.
+      const dispute = await PaymentDisputeModel.findOne({ paymentIntentId: intentId })
+        .select('status resolution refundIntentId')
+        .lean();
+
       // Return pre-signed S3 URL or receipt data
       return res.json({
         status: 'success',
@@ -1536,6 +1542,8 @@ router.get(
           receiptUrl: payment.receiptUrl,
           receiptNumber: payment.receiptNumber,
           generatedAt: payment.receiptGeneratedAt,
+          disputeStatus: dispute ? (dispute as any).status : 'none',
+          refundIntentId: dispute ? (dispute as any).refundIntentId : undefined,
         },
       });
     } catch (err: any) {

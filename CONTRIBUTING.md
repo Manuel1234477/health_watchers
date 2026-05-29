@@ -12,6 +12,7 @@ Thank you for your interest in contributing to Health Watchers! This document pr
 - [Coding Standards](#coding-standards)
 - [Testing](#testing)
 - [Commit Messages](#commit-messages)
+- [Dependency Update Guidelines](#dependency-update-guidelines)
 
 ## Code of Conduct
 
@@ -518,6 +519,48 @@ Add Docker setup instructions and troubleshooting section.
 - Use **environment variables** for configuration
 - Follow **OWASP** security best practices
 - Report security vulnerabilities privately to maintainers
+
+## Dependency Update Guidelines
+
+Dependencies are kept current and secure through a combination of [Dependabot](https://docs.github.com/en/code-security/dependabot) and automated security scanning. Understanding the flow helps you review and merge dependency PRs safely.
+
+### How updates are proposed
+
+- **Dependabot** runs weekly (Mondays 09:00) and opens PRs for the `npm` and `github-actions` ecosystems (see `.github/dependabot.yml`).
+- **Minor and patch** updates are **grouped** into a single PR per dependency-type (production / development) so security checks run once per batch.
+- **Major** updates are opened individually and are **never auto-merged** — they require manual review because they may contain breaking changes.
+
+### Automated checks on every Dependabot PR
+
+Each Dependabot PR triggers `.github/workflows/dependabot-security.yml`:
+
+| Check | Purpose | Blocks merge? |
+| --- | --- | --- |
+| **Critical Vulnerability Gate** (`npm audit --audit-level=critical`) | Fails if any introduced/remaining dependency has a critical CVE | ✅ Yes (required status check) |
+| **License Compatibility** | Verifies new production dependencies use an allow-listed license (MIT, Apache-2.0, BSD, ISC, …) | ✅ Yes |
+| **Snyk PR Comment** | Posts a vulnerability breakdown as a PR comment | ❌ Informational |
+
+The main CI pipeline (`.github/workflows/ci.yml`) additionally runs `npm audit --audit-level=critical` and `--audit-level=high` as required gates.
+
+### Auto-merge policy
+
+- **Patch** updates (`x.y.Z`) that pass **all** required checks are **auto-approved and auto-merged** via `.github/workflows/dependabot-auto-merge.yml` (squash merge).
+- **Minor** updates require a maintainer to review and merge manually.
+- **Major** updates require manual review, testing, and an explicit changeset.
+
+> Auto-merge relies on branch protection. Maintainers must mark **"Critical Vulnerability Gate"** and **"License Compatibility"** as required status checks on `main` for the gates to be enforced.
+
+### Adding or upgrading a dependency manually
+
+1. Prefer well-maintained packages with a compatible license (see allow-list above).
+2. Add it to the correct workspace (`apps/*` or `packages/*`), not the repo root, unless it is a dev tool used across the monorepo.
+3. Run `npm audit --audit-level=high` locally before pushing.
+4. Run `npx license-checker --production --onlyAllow "MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;CC0-1.0;Unlicense"` to confirm license compatibility.
+5. Add a [changeset](#commit-messages) if the change affects a published package's behaviour.
+
+### Weekly audit report
+
+The **Weekly Dependency Audit Report** workflow (`.github/workflows/dependency-report.yml`) runs every Monday and publishes a consolidated report (vulnerabilities, outdated packages, license breakdown) as a tracking issue labelled `dependencies, automated`. Review it weekly and remediate any **critical** findings before they block PRs.
 
 ## Architecture Decisions
 

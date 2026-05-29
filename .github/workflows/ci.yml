@@ -85,6 +85,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Required gate: any CRITICAL vulnerability fails CI and blocks merge.
+      - name: npm audit (fail on critical)
+        run: npm audit --audit-level=critical
+
       - name: npm audit (fail on high/critical)
         run: npm audit --audit-level=high
 

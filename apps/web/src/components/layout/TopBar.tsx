@@ -3,6 +3,7 @@
 import { useAuth } from '@/context/AuthContext';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import ClinicSwitcher from '@/components/layout/ClinicSwitcher';
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -46,8 +47,9 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
         {user?.clinicName ?? 'Health Watchers'}
       </span>
 
-      {/* Right: theme toggle + notification bell + avatar + logout */}
+      {/* Right: clinic switcher (SUPER_ADMIN) + theme toggle + notification bell + avatar + logout */}
       <div className="flex items-center gap-3">
+        <ClinicSwitcher />
         <ThemeToggle />
         <NotificationBell />
         <div

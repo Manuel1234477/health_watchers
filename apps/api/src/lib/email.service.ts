@@ -170,6 +170,40 @@ export function sendDisputeResolvedEmail(to: string, disputeId: string, status: 
   enqueue(to, 'Payment Dispute Resolved — Health Watchers', text, html);
 }
 
+/** Dispute evidence submitted — notifies that the 7-day review period has started */
+export function sendDisputeEvidenceSubmittedEmail(
+  to: string,
+  disputeId: string,
+  reviewDeadline: Date,
+): void {
+  const disputeUrl = `${APP_BASE_URL()}/disputes`;
+  const deadlineStr = reviewDeadline.toUTCString();
+  const text = `Evidence has been submitted for dispute ${disputeId}. The review period ends ${deadlineStr}.\n\nView disputes: ${disputeUrl}`;
+  const html = `
+    <h3>Dispute Evidence Submitted</h3>
+    <p>Evidence has been submitted for dispute <strong>${disputeId}</strong>.</p>
+    <p>The review period ends <strong>${deadlineStr}</strong>.</p>
+    <p><a href="${disputeUrl}">View Disputes</a></p>
+  `;
+  enqueue(to, 'Dispute Evidence Submitted — Health Watchers', text, html);
+}
+
+/**
+ * Data export ready — sends a SECURE DOWNLOAD LINK (never the data as an
+ * attachment) for a patient's HIPAA Right of Access export.
+ */
+export function sendDataExportReadyEmail(to: string, downloadUrl: string, expiresAt: Date): void {
+  const expiryStr = expiresAt.toUTCString();
+  const text = `Your health record export is ready.\n\nDownload it securely here (link expires ${expiryStr}):\n${downloadUrl}\n\nFor your security this link is single-purpose and time-limited. Do not share it.`;
+  const html = `
+    <h3>Your Health Record Export Is Ready</h3>
+    <p>You requested a copy of your health record. It is now ready to download.</p>
+    <p><a href="${downloadUrl}">Download your records securely</a></p>
+    <p>This link expires <strong>${expiryStr}</strong>. For your security, do not share it.</p>
+  `;
+  enqueue(to, 'Your Health Record Export Is Ready — Health Watchers', text, html);
+}
+
 /** Low balance warning sent when XLM balance drops below the warning threshold */
 export function sendLowBalanceWarningEmail(
   to: string,

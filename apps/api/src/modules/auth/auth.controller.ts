@@ -186,7 +186,7 @@ router.post(
       });
     }
 
-    const p = { userId: user.id, role: user.role, clinicId: String(user.clinicId) };
+    const p = { userId: user.id, role: user.role, clinicId: String(user.clinicId), isSuperAdmin: user.role === 'SUPER_ADMIN' };
     const { token: refreshToken, jti, family } = signRefreshToken(p);
     await RefreshTokenModel.create({
       jti,
@@ -237,7 +237,7 @@ router.post(
     existing.consumed = true;
     await existing.save();
 
-    const p = { userId: user.id, role: user.role, clinicId: String(user.clinicId) };
+    const p = { userId: user.id, role: user.role, clinicId: String(user.clinicId), isSuperAdmin: user.role === 'SUPER_ADMIN' };
     const { token: refreshToken, jti, family } = signRefreshToken(p, decoded.family);
     await RefreshTokenModel.create({
       jti,
@@ -410,7 +410,7 @@ router.post(
       await user.save();
     }
 
-    const p = { userId: user.id, role: user.role, clinicId: String(user.clinicId) };
+    const p = { userId: user.id, role: user.role, clinicId: String(user.clinicId), isSuperAdmin: user.role === 'SUPER_ADMIN' };
     const { token: refreshToken, jti, family } = signRefreshToken(p);
     await RefreshTokenModel.create({
       jti,
@@ -455,7 +455,7 @@ router.post(
     user.mfaBackupCodes.splice(idx, 1);
     await user.save();
 
-    const p = { userId: user.id, role: user.role, clinicId: String(user.clinicId) };
+    const p = { userId: user.id, role: user.role, clinicId: String(user.clinicId), isSuperAdmin: user.role === 'SUPER_ADMIN' };
     const { token: refreshToken, jti, family } = signRefreshToken(p);
     await RefreshTokenModel.create({
       jti,
@@ -545,6 +545,79 @@ router.post('/unlock', authenticate, async (req: Request, res: Response) => {
   await user.save();
 
   return res.json({ status: 'success', data: { unlocked: true, email: user.email } });
+});
+
+/**
+ * @swagger
+ * /auth/switch-clinic:
+ *   post:
+ *     summary: Switch the active clinic for a SUPER_ADMIN and obtain tokens scoped to it
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [clinicId]
+ *             properties:
+ *               clinicId: { type: string, description: MongoDB ObjectId of the target clinic }
+ *     responses:
+ *       200:
+ *         description: New access + refresh tokens scoped to the selected clinic
+ *       400: { description: Missing or invalid clinicId }
+ *       403: { description: Caller is not a SUPER_ADMIN }
+ *       404: { description: Clinic not found }
+ */
+router.post('/switch-clinic', authenticate, async (req: Request, res: Response) => {
+  if (req.user!.role !== 'SUPER_ADMIN')
+    return res.status(403).json({ error: 'Forbidden', message: 'SUPER_ADMIN role required' });
+
+  const { clinicId } = req.body as { clinicId?: string };
+  if (!clinicId || !/^[a-f\d]{24}$/i.test(clinicId))
+    return res.status(400).json({ error: 'BadRequest', message: 'A valid clinicId is required' });
+
+  const clinic = await ClinicModel.findById(clinicId);
+  if (!clinic || clinic.isActive === false)
+    return res.status(404).json({ error: 'NotFound', message: 'Clinic not found or inactive' });
+
+  const user = await UserModel.findById(req.user!.userId);
+  if (!user || !user.isActive)
+    return res.status(401).json({ error: 'Unauthorized', message: 'Invalid session' });
+
+  const previousClinicId = req.user!.clinicId;
+  const p = { userId: user.id, role: user.role, clinicId, isSuperAdmin: true };
+  const { token: refreshToken, jti, family } = signRefreshToken(p);
+  await RefreshTokenModel.create({
+    jti,
+    userId: user.id,
+    family,
+    consumed: false,
+    expiresAt: new Date(Date.now() + REFRESH_TOKEN_EXPIRY_MS),
+  });
+
+  await auditLog(
+    {
+      action: 'CLINIC_SWITCH',
+      userId: user.id,
+      clinicId,
+      resourceType: 'Clinic',
+      resourceId: clinicId,
+      metadata: { from: previousClinicId, to: clinicId },
+    },
+    req
+  );
+
+  return res.json({
+    status: 'success',
+    data: {
+      accessToken: signAccessToken(p),
+      refreshToken,
+      clinic: { id: String(clinic._id), name: clinic.name },
+    },
+  });
 });
 
 /**
