@@ -10,7 +10,7 @@ export async function submitDexTrade(req: Request, res: Response) {
     return res.status(400).json({ success: false, message: validation.reason });
   }
 
-  // TODO: wire to stellar-service createOffer + TradeRecordModel.create
+  // TODO: wire to stellarService.createOffer() and TradeRecordModel.create()
   return res.status(202).json({
     success: true,
     message: 'Trade submitted',
@@ -19,7 +19,6 @@ export async function submitDexTrade(req: Request, res: Response) {
 }
 
 export async function getTradeHistory(req: Request, res: Response) {
-  const { clinicId } = req.user as any;
   // TODO: await TradeRecordModel.find({ clinicId, tradeType: 'dex' }).sort({ createdAt: -1 })
   return res.json({ success: true, data: [] });
 }

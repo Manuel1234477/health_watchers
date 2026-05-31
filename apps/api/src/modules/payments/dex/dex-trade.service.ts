@@ -13,20 +13,6 @@ export interface TradeValidation {
   minAcceptablePrice?: number;
 }
 
-export interface TradeRecord {
-  clinicId: string;
-  sellAsset: string;
-  buyAsset: string;
-  sellAmount: number;
-  expectedPrice: number;
-  executedPrice?: number;
-  maxSlippagePercent: number;
-  status: 'pending' | 'executed' | 'cancelled' | 'slippage_rejected';
-  stellarOfferId?: string;
-  tradeType: 'dex';
-  createdAt: Date;
-}
-
 export function validateTradeRequest(req: TradeRequest): TradeValidation {
   if (req.sellAmount <= 0) return { valid: false, reason: 'sellAmount must be greater than 0' };
   if (req.expectedPrice <= 0) return { valid: false, reason: 'expectedPrice must be greater than 0' };
@@ -44,5 +30,20 @@ export function isWithinSlippage(
   expectedPrice: number,
   maxSlippagePercent: number,
 ): boolean {
-  return currentMarketPrice >= expectedPrice * (1 - maxSlippagePercent / 100);
+  const floor = expectedPrice * (1 - maxSlippagePercent / 100);
+  return currentMarketPrice >= floor;
+}
+
+export interface TradeRecord {
+  clinicId: string;
+  sellAsset: string;
+  buyAsset: string;
+  sellAmount: number;
+  expectedPrice: number;
+  executedPrice?: number;
+  maxSlippagePercent: number;
+  status: 'pending' | 'executed' | 'cancelled' | 'slippage_rejected';
+  stellarOfferId?: string;
+  tradeType: 'dex';
+  createdAt: Date;
 }
