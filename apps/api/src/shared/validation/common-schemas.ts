@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { mongoObjectId, monetaryAmount, notesField, paginationLimit, paginationOffset } from './validators';
+import { stellarPublicKey, mongoObjectId, icd10Code, cptCode, shortName, notesField, emailField, monetaryAmount, paginationLimit, paginationOffset } from './validators';
 
 export const PaginationSchema = z.object({ limit: paginationLimit, offset: paginationOffset }).strict();
 
@@ -16,10 +16,10 @@ export const CreatePaymentIntentSchema = z.object({
 
 export const CreateHealthLogSchema = z.object({
   metricType: z.enum(['weight', 'blood_pressure', 'blood_glucose', 'exercise_minutes', 'heart_rate']),
-  value:      z.number().positive().max(100_000),
-  unit:       z.string().min(1).max(20).trim(),
-  loggedAt:   z.string().datetime().optional(),
-  notes:      notesField,
+  value:     z.number().positive().max(100_000),
+  unit:      z.string().min(1).max(20).trim(),
+  loggedAt:  z.string().datetime().optional(),
+  notes:     notesField,
 }).strict();
 
 export const UpdateBillingStatusSchema = z.object({
@@ -33,4 +33,7 @@ export const DexTradeSchema = z.object({
   sellAmount:         monetaryAmount,
   expectedPrice:      z.number().positive(),
   maxSlippagePercent: z.number().min(0).max(50).default(1),
-}).strict().refine(d => d.sellAsset !== d.buyAsset, { message: 'sellAsset and buyAsset must differ', path: ['buyAsset'] });
+}).strict().refine(d => d.sellAsset !== d.buyAsset, {
+  message: 'sellAsset and buyAsset must differ',
+  path: ['buyAsset'],
+});
