@@ -537,6 +537,27 @@ export function sendOutcomeNotificationEmail(
   enqueue(to, subject, text, html);
 }
 
+/** Keypair rotation notification sent to clinic admin after successful rotation */
+export function sendKeypairRotationEmail(
+  to: string,
+  clinicName: string,
+  newPublicKey: string,
+  keyVersion: number,
+  language?: string,
+): void {
+  const isFrench = resolveLanguage(language) === 'fr';
+  const subject = isFrench
+    ? `Rotation des clés Stellar effectuée — ${clinicName}`
+    : `Stellar Keypair Rotated — ${clinicName}`;
+  const text = isFrench
+    ? `La rotation des clés Stellar de votre clinique a été effectuée avec succès.\n\nNouvelle clé publique : ${newPublicKey}\nVersion : ${keyVersion}\n\nSi vous n'avez pas initié cette action, contactez le support immédiatement.`
+    : `Your clinic's Stellar keypair has been successfully rotated.\n\nNew public key: ${newPublicKey}\nKey version: ${keyVersion}\n\nIf you did not initiate this action, please contact support immediately.`;
+  const html = isFrench
+    ? `<h3>Rotation des clés Stellar effectuée — ${clinicName}</h3><p>La rotation des clés Stellar de votre clinique a été effectuée avec succès.</p><table style="border-collapse:collapse;width:100%;margin:16px 0"><tr><td style="padding:8px;font-weight:bold">Nouvelle clé publique</td><td style="padding:8px;font-family:monospace;font-size:12px">${newPublicKey}</td></tr><tr style="background:#f9fafb"><td style="padding:8px;font-weight:bold">Version</td><td style="padding:8px">${keyVersion}</td></tr></table><p style="color:#dc2626"><strong>Si vous n'avez pas initié cette action, contactez le support immédiatement.</strong></p>`
+    : `<h3>Stellar Keypair Rotated — ${clinicName}</h3><p>Your clinic's Stellar keypair has been successfully rotated.</p><table style="border-collapse:collapse;width:100%;margin:16px 0"><tr><td style="padding:8px;font-weight:bold">New Public Key</td><td style="padding:8px;font-family:monospace;font-size:12px">${newPublicKey}</td></tr><tr style="background:#f9fafb"><td style="padding:8px;font-weight:bold">Key Version</td><td style="padding:8px">${keyVersion}</td></tr></table><p style="color:#dc2626"><strong>If you did not initiate this action, please contact support immediately.</strong></p>`;
+  enqueue(to, subject, text, html);
+}
+
 /** Claimable balance expiry notification sent to patient */
 export function sendClaimableExpiryEmail(
   to: string,
